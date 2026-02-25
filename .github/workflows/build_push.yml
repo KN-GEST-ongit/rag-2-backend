@@ -31,4 +31,4 @@ jobs:
           file: ./rag-2-backend/Dockerfile
           push: true
           tags: |
-            ghcr.io/theimmortalcoders/rag-2-backend:${{ github.ref_name }}
+            ghcr.io/KN-GEST-ongit/rag-2-backend:${{ github.ref_name }}
