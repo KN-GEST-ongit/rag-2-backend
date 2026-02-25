@@ -631,10 +631,10 @@ the "copyright" line and a pointer to where the full notice is found.
 
     RUT-AI GAMES 2 (RAG-2)
     Backend of minigames app integrable with external AI models
-    Copyright (C) 2024  Marcin Bator
-    
-    The application was created as part of the work of the Human-Computer 
-    Interaction Scientific Club "GEST" at the Rzeszów University of Technology.
+    Copyright (C) 2026 KN GEST
+
+    This repository is forked from https://github.com/theImmortalCoders/rag-2-backend-legacy,
+    which is authored by M. Bator, P. Buczek and B. Krówka.
 
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU Affero General Public License as published
