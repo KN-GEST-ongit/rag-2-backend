@@ -91,7 +91,7 @@ public class UserService(
 
     public async Task RequestPasswordReset(string email)
     {
-        var user = await userDao.GetUserByEmailOrThrow(email);
+        var user = await userDao.GetUserByPrimaryOrSecondaryEmailOrThrow(email);
 
         context.PasswordResetTokens.RemoveRange(
             context.PasswordResetTokens.Where(a => a.User.Email == user.Email)
@@ -144,6 +144,10 @@ public class UserService(
             .Include(p => p.User)
             .Where(a => a.User.Email == email)
         );
+        context.SecondaryEmailTokens.RemoveRange(context.SecondaryEmailTokens
+            .Include(p => p.User)
+            .Where(a => a.User.Email == email)
+        );
 
         context.Users.Remove(user);
         await context.SaveChangesAsync();
@@ -193,6 +197,18 @@ public class UserService(
 
         token.User.SecondaryEmail = token.PendingEmail;
         context.SecondaryEmailTokens.Remove(token);
+        await context.SaveChangesAsync();
+    }
+
+    public async Task RemoveSecondaryEmail(string principalEmail)
+    {
+        var user = await userDao.GetUserByEmailOrThrow(principalEmail);
+
+        user.SecondaryEmail = null;
+        context.SecondaryEmailTokens.RemoveRange(
+            context.SecondaryEmailTokens.Where(t => t.User.Email == principalEmail)
+        );
+
         await context.SaveChangesAsync();
     }
 
@@ -249,6 +265,9 @@ public class UserService(
         };
         await context.PasswordResetTokens.AddAsync(token);
         emailService.SendPasswordResetMail(user.Email, token.Token);
+
+        if (user.SecondaryEmail != null)
+            emailService.SendPasswordResetMail(user.SecondaryEmail, token.Token);
     }
 
     private async Task GenerateSecondaryEmailTokenAndSendMail(Database.Entity.User user, string pendingEmail)

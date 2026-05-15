@@ -281,4 +281,49 @@ public class UserServiceTest
 
         _secondaryEmailToken.Expiration = DateTime.Now.AddDays(1);
     }
+
+    [Fact]
+    public async Task ShouldRemoveSecondaryEmail()
+    {
+        _user.SecondaryEmail = "private@gmail.com";
+
+        await _userService.RemoveSecondaryEmail("email@prz.edu.pl");
+
+        Assert.Null(_user.SecondaryEmail);
+    }
+
+    [Fact]
+    public async Task ShouldRequestPasswordReset_SendsToBothEmails_WhenSecondaryEmailSet()
+    {
+        _user.SecondaryEmail = "private@gmail.com";
+        _userMock.Setup(u => u.GetUserByPrimaryOrSecondaryEmailOrThrow(It.IsAny<string>())).ReturnsAsync(_user);
+
+        await _userService.RequestPasswordReset("private@gmail.com");
+
+        _emailService.Verify(
+            e => e.SendPasswordResetMail(It.IsAny<string>(), It.IsAny<string>()),
+            Times.Exactly(2));
+
+        _user.SecondaryEmail = null;
+    }
+
+    [Fact]
+    public async Task ShouldRequestPasswordReset_SendsToPrimaryOnly_WhenNoSecondaryEmail()
+    {
+        _userMock.Setup(u => u.GetUserByPrimaryOrSecondaryEmailOrThrow(It.IsAny<string>())).ReturnsAsync(_user);
+
+        await _userService.RequestPasswordReset("email@prz.edu.pl");
+
+        _emailService.Verify(
+            e => e.SendPasswordResetMail(It.IsAny<string>(), It.IsAny<string>()),
+            Times.Once);
+    }
+
+    [Fact]
+    public async Task ShouldDeleteAccount_AlsoCleansSecondaryEmailToken()
+    {
+        await _userService.DeleteAccount("email@prz.edu.pl");
+
+        _contextMock.Verify(c => c.Users.Remove(It.IsAny<User>()), Times.Once);
+    }
 }

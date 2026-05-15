@@ -23,7 +23,7 @@ public class AuthService(
 {
     public async Task<UserLoginResponse> LoginUser(string email, string password, double refreshTokenExpirationTimeDays)
     {
-        var user = await userDao.GetUserByEmailOrThrow(email);
+        var user = await userDao.GetUserByPrimaryOrSecondaryEmailOrThrow(email);
 
         if (!HashUtil.VerifyPassword(password, user.Password))
             throw new UnauthorizedException("Invalid password");
@@ -54,7 +54,10 @@ public class AuthService(
 
     public async Task<UserResponse> GetMe(string email)
     {
-        return UserMapper.Map(await userDao.GetUserByEmailOrThrow(email));
+        var user = await userDao.GetUserByEmailOrThrow(email);
+        var hasPending = await databaseContext.SecondaryEmailTokens
+            .AnyAsync(t => t.User.Email == email);
+        return UserMapper.Map(user, hasPending);
     }
 
     public async Task LogoutUser(string token)
