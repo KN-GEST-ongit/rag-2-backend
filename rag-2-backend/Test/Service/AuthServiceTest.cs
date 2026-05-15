@@ -75,6 +75,8 @@ public class AuthServiceTest
             .Returns(() => new List<GameRecord>().AsQueryable().BuildMockDbSet().Object);
         _contextMock.Setup(c => c.PasswordResetTokens)
             .Returns(() => new List<PasswordResetToken> { passwordToken }.AsQueryable().BuildMockDbSet().Object);
+        _contextMock.Setup(c => c.SecondaryEmailTokens)
+            .Returns(() => new List<SecondaryEmailToken>().AsQueryable().BuildMockDbSet().Object);
         _jwtUtilMock.Setup(j => j.GenerateJwt(It.IsAny<string>(), It.IsAny<string>())).Verifiable();
         _emailService.Setup(e => e.SendConfirmationEmail(It.IsAny<string>(), It.IsAny<string>())).Verifiable();
         _emailService.Setup(e => e.SendPasswordResetMail(It.IsAny<string>(), It.IsAny<string>())).Verifiable();
@@ -113,7 +115,9 @@ public class AuthServiceTest
             Email = "email@prz.edu.pl",
             Role = Role.Teacher,
             StudyCycleYearA = 2022,
-            StudyCycleYearB = 2023
+            StudyCycleYearB = 2023,
+            SecondaryEmail = null,
+            HasPendingSecondaryEmail = false
         };
 
         Assert.Equal(JsonConvert.SerializeObject(userResponse),
