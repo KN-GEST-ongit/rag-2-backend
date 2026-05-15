@@ -25,6 +25,14 @@ public class UserDao(DatabaseContext context)
                throw new NotFoundException("User not found");
     }
 
+    public virtual async Task<User> GetUserByPrimaryOrSecondaryEmailOrThrow(string email)
+    {
+        return await context.Users
+                   .Include(u => u.Course)
+                   .SingleOrDefaultAsync(u => u.Email == email || u.SecondaryEmail == email) ??
+               throw new NotFoundException("User not found");
+    }
+
     public virtual async Task<int> CountUsers()
     {
         return await context.Users.CountAsync();
