@@ -12,4 +12,5 @@ public class GameRecordRequest
     public required string OutputSpec { get; init; }
     public required List<GameRecordValue> Values { get; init; }
     public required List<Player> Players { get; init; }
+
 }

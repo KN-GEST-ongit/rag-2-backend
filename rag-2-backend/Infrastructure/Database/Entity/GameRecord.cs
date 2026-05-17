@@ -25,4 +25,8 @@ public class GameRecord
     [MaxLength(5000)] public string? EndState { get; init; }
     public double SizeMb { get; init; }
     public bool IsEmptyRecord { get; init; }
+
+    public double PrimaryScore { get; init; }
+    public ControlSource ControlSource { get; init; }
+    [MaxLength(1000)] public string? ModelName { get; init; }
 }
