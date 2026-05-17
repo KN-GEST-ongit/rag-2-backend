@@ -19,4 +19,8 @@ public class GameRecordResponse
     public object? EndState { get; set; }
     public double SizeMb { get; init; }
     public bool IsEmptyRecord { get; init; }
+
+    public double? PrimaryScore { get; init; }
+    public ControlSource ControlSource { get; init; }
+    public string? ModelName { get; init; }
 }
