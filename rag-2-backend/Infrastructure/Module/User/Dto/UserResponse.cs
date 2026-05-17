@@ -19,4 +19,6 @@ public class UserResponse
     public bool Banned { get; set; }
     public CourseResponse? Course { get; set; }
     public string? Group { get; set; }
+    public string? SecondaryEmail { get; set; }
+    public bool HasPendingSecondaryEmail { get; set; }
 }

@@ -79,4 +79,29 @@ public class UserController(UserService userService) : ControllerBase
     {
         await userService.DeleteAccount(AuthDao.GetPrincipalEmail(User));
     }
+
+    /// <summary>Set or change secondary (personal) email — sends a confirmation link (Auth)</summary>
+    /// <response code="400">Invalid email, university domain, or email already in use</response>
+    [HttpPut("secondary-email")]
+    [Authorize]
+    public async Task SetSecondaryEmail([Required] string email)
+    {
+        await userService.SetSecondaryEmail(email, AuthDao.GetPrincipalEmail(User));
+    }
+
+    /// <summary>Confirm secondary email with token from confirmation mail</summary>
+    /// <response code="400">Invalid or expired token</response>
+    [HttpPost("confirm-secondary-email")]
+    public async Task ConfirmSecondaryEmail([Required] string token)
+    {
+        await userService.ConfirmSecondaryEmail(token);
+    }
+
+    /// <summary>Remove secondary email and any pending confirmation (Auth)</summary>
+    [HttpDelete("secondary-email")]
+    [Authorize]
+    public async Task RemoveSecondaryEmail()
+    {
+        await userService.RemoveSecondaryEmail(AuthDao.GetPrincipalEmail(User));
+    }
 }

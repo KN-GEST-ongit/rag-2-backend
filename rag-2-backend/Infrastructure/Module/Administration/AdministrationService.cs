@@ -67,7 +67,7 @@ public class AdministrationService(DatabaseContext context, UserDao userDao)
         query = FilterUsers(email, studyCycleYearA, studyCycleYearB, group, courseName, query);
         query = SortUsers(sortDirection, sortBy, query);
 
-        return await Task.Run(() => query.AsEnumerable().Select(UserMapper.Map).ToList());
+        return await Task.Run(() => query.AsEnumerable().Select(u => UserMapper.Map(u)).ToList());
     }
 
     //

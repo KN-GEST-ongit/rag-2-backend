@@ -30,6 +30,8 @@ public class UserServiceTest
     private readonly Mock<JwtSecurityTokenHandler> _jwtSecurityTokenHandlerMock = new();
 
     private readonly PasswordResetToken _passwordToken;
+    private readonly SecondaryEmailToken _secondaryEmailToken;
+    private readonly Mock<UserDao> _userMock;
 
     private readonly User _user = new("email@prz.edu.pl")
     {
@@ -58,15 +60,23 @@ public class UserServiceTest
             Expiration = DateTime.Now.AddDays(7),
             Token = HashUtil.HashPassword("password")
         };
+        _secondaryEmailToken = new SecondaryEmailToken
+        {
+            Token = "secondary-token",
+            User = _user,
+            Expiration = DateTime.Now.AddDays(1),
+            PendingEmail = "private@gmail.com"
+        };
 
-        Mock<UserDao> userMock = new(_contextMock.Object);
+        _userMock = new Mock<UserDao>(_contextMock.Object);
         Mock<RefreshTokenDao> refreshTokenDaoMock = new(_contextMock.Object);
         Mock<CourseDao> courseDaoMock = new(_contextMock.Object);
-        userMock.Setup(u => u.GetUserByIdOrThrow(It.IsAny<int>())).ReturnsAsync(_user);
-        userMock.Setup(u => u.GetUserByEmailOrThrow(It.IsAny<string>())).ReturnsAsync(_user);
+        _userMock.Setup(u => u.GetUserByIdOrThrow(It.IsAny<int>())).ReturnsAsync(_user);
+        _userMock.Setup(u => u.GetUserByEmailOrThrow(It.IsAny<string>())).ReturnsAsync(_user);
+        _userMock.Setup(u => u.GetUserByPrimaryOrSecondaryEmailOrThrow(It.IsAny<string>())).ReturnsAsync(_user);
 
         _userService = new UserService(_contextMock.Object, _emailService.Object,
-            userMock.Object, refreshTokenDaoMock.Object, courseDaoMock.Object);
+            _userMock.Object, refreshTokenDaoMock.Object, courseDaoMock.Object);
 
         courseDaoMock.Setup(c => c.GetCourseByIdOrThrow(It.IsAny<int>()))!.ReturnsAsync(_user.Course);
         _contextMock.Setup(c => c.Users).Returns(() => new List<User> { _user }
@@ -79,8 +89,12 @@ public class UserServiceTest
             .Returns(() => new List<GameRecord>().AsQueryable().BuildMockDbSet().Object);
         _contextMock.Setup(c => c.PasswordResetTokens)
             .Returns(() => new List<PasswordResetToken> { _passwordToken }.AsQueryable().BuildMockDbSet().Object);
+        _contextMock.Setup(c => c.SecondaryEmailTokens)
+            .Returns(() => new List<SecondaryEmailToken> { _secondaryEmailToken }
+                .AsQueryable().BuildMockDbSet().Object);
         _emailService.Setup(e => e.SendConfirmationEmail(It.IsAny<string>(), It.IsAny<string>())).Verifiable();
         _emailService.Setup(e => e.SendPasswordResetMail(It.IsAny<string>(), It.IsAny<string>())).Verifiable();
+        _emailService.Setup(e => e.SendSecondaryEmailConfirmationMail(It.IsAny<string>(), It.IsAny<string>())).Verifiable();
         _jwtSecurityTokenHandlerMock.Setup(e => e.ReadToken(It.IsAny<string>())).Returns(() => new JwtSecurityToken());
     }
 
@@ -169,6 +183,144 @@ public class UserServiceTest
 
     [Fact]
     public async Task ShouldDeleteAccount()
+    {
+        await _userService.DeleteAccount("email@prz.edu.pl");
+
+        _contextMock.Verify(c => c.Users.Remove(It.IsAny<User>()), Times.Once);
+    }
+
+    [Fact]
+    public async Task ShouldSetSecondaryEmail()
+    {
+        _user.Confirmed = true;
+
+        await _userService.SetSecondaryEmail("private@gmail.com", "email@prz.edu.pl");
+
+        _contextMock.Verify(
+            c => c.SecondaryEmailTokens.AddAsync(It.IsAny<SecondaryEmailToken>(), CancellationToken.None),
+            Times.Once);
+        _emailService.Verify(
+            e => e.SendSecondaryEmailConfirmationMail("private@gmail.com", It.IsAny<string>()),
+            Times.Once);
+    }
+
+    [Fact]
+    public async Task ShouldNotSetSecondaryEmail_WhenUniversityDomain()
+    {
+        _user.Confirmed = true;
+
+        await Assert.ThrowsAsync<BadRequestException>(
+            () => _userService.SetSecondaryEmail("private@stud.prz.edu.pl", "email@prz.edu.pl")
+        );
+        await Assert.ThrowsAsync<BadRequestException>(
+            () => _userService.SetSecondaryEmail("private@prz.edu.pl", "email@prz.edu.pl")
+        );
+    }
+
+    [Fact]
+    public async Task ShouldNotSetSecondaryEmail_WhenSameAsConfirmed()
+    {
+        _user.Confirmed = true;
+        _user.SecondaryEmail = "already@gmail.com";
+
+        await Assert.ThrowsAsync<BadRequestException>(
+            () => _userService.SetSecondaryEmail("already@gmail.com", "email@prz.edu.pl")
+        );
+
+        _user.SecondaryEmail = null;
+    }
+
+    [Fact]
+    public async Task ShouldNotSetSecondaryEmail_WhenEmailTakenByAnotherUser()
+    {
+        _user.Confirmed = true;
+        var otherUser = new User("other@prz.edu.pl")
+        {
+            Name = "Other",
+            Password = "x",
+            SecondaryEmail = "taken@gmail.com"
+        };
+        _contextMock.Setup(c => c.Users).Returns(() =>
+            new List<User> { _user, otherUser }.AsQueryable().BuildMockDbSet().Object);
+
+        await Assert.ThrowsAsync<BadRequestException>(
+            () => _userService.SetSecondaryEmail("taken@gmail.com", "email@prz.edu.pl")
+        );
+
+        _contextMock.Setup(c => c.Users).Returns(() =>
+            new List<User> { _user }.AsQueryable().BuildMockDbSet().Object);
+    }
+
+    [Fact]
+    public async Task ShouldConfirmSecondaryEmail()
+    {
+        await _userService.ConfirmSecondaryEmail(_secondaryEmailToken.Token);
+
+        Assert.Equal("private@gmail.com", _user.SecondaryEmail);
+        _contextMock.Verify(c => c.SecondaryEmailTokens.Remove(It.IsAny<SecondaryEmailToken>()), Times.Once);
+
+        _user.SecondaryEmail = null;
+    }
+
+    [Fact]
+    public async Task ShouldNotConfirmSecondaryEmail_WhenTokenInvalid()
+    {
+        await Assert.ThrowsAsync<BadRequestException>(
+            () => _userService.ConfirmSecondaryEmail("wrong-token")
+        );
+    }
+
+    [Fact]
+    public async Task ShouldNotConfirmSecondaryEmail_WhenTokenExpired()
+    {
+        _secondaryEmailToken.Expiration = DateTime.Now.AddDays(-1);
+
+        await Assert.ThrowsAsync<BadRequestException>(
+            () => _userService.ConfirmSecondaryEmail(_secondaryEmailToken.Token)
+        );
+
+        _secondaryEmailToken.Expiration = DateTime.Now.AddDays(1);
+    }
+
+    [Fact]
+    public async Task ShouldRemoveSecondaryEmail()
+    {
+        _user.SecondaryEmail = "private@gmail.com";
+
+        await _userService.RemoveSecondaryEmail("email@prz.edu.pl");
+
+        Assert.Null(_user.SecondaryEmail);
+    }
+
+    [Fact]
+    public async Task ShouldRequestPasswordReset_SendsToBothEmails_WhenSecondaryEmailSet()
+    {
+        _user.SecondaryEmail = "private@gmail.com";
+        _userMock.Setup(u => u.GetUserByPrimaryOrSecondaryEmailOrThrow(It.IsAny<string>())).ReturnsAsync(_user);
+
+        await _userService.RequestPasswordReset("private@gmail.com");
+
+        _emailService.Verify(
+            e => e.SendPasswordResetMail(It.IsAny<string>(), It.IsAny<string>()),
+            Times.Exactly(2));
+
+        _user.SecondaryEmail = null;
+    }
+
+    [Fact]
+    public async Task ShouldRequestPasswordReset_SendsToPrimaryOnly_WhenNoSecondaryEmail()
+    {
+        _userMock.Setup(u => u.GetUserByPrimaryOrSecondaryEmailOrThrow(It.IsAny<string>())).ReturnsAsync(_user);
+
+        await _userService.RequestPasswordReset("email@prz.edu.pl");
+
+        _emailService.Verify(
+            e => e.SendPasswordResetMail(It.IsAny<string>(), It.IsAny<string>()),
+            Times.Once);
+    }
+
+    [Fact]
+    public async Task ShouldDeleteAccount_AlsoCleansSecondaryEmailToken()
     {
         await _userService.DeleteAccount("email@prz.edu.pl");
 

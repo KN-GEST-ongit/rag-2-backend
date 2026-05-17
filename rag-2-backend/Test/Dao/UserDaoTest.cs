@@ -86,4 +86,50 @@ public class UserDaoTests
 
         await Assert.ThrowsAsync<NotFoundException>(() => _userDao.GetUserByEmailOrThrow(email));
     }
+
+    [Fact]
+    public async Task GetUserByPrimaryOrSecondaryEmailOrThrow_ShouldReturnUser_WhenPrimaryEmailMatches()
+    {
+        var user = new User
+        {
+            Id = 1,
+            Email = "test@prz.edu.pl",
+            Password = null!,
+            Name = null!,
+            SecondaryEmail = null
+        };
+        SetUpUsersDbSet(new List<User> { user });
+
+        var result = await _userDao.GetUserByPrimaryOrSecondaryEmailOrThrow("test@prz.edu.pl");
+
+        Assert.Equal("test@prz.edu.pl", result.Email);
+    }
+
+    [Fact]
+    public async Task GetUserByPrimaryOrSecondaryEmailOrThrow_ShouldReturnUser_WhenSecondaryEmailMatches()
+    {
+        var user = new User
+        {
+            Id = 1,
+            Email = "test@prz.edu.pl",
+            Password = null!,
+            Name = null!,
+            SecondaryEmail = "personal@gmail.com"
+        };
+        SetUpUsersDbSet(new List<User> { user });
+
+        var result = await _userDao.GetUserByPrimaryOrSecondaryEmailOrThrow("personal@gmail.com");
+
+        Assert.Equal("test@prz.edu.pl", result.Email);
+    }
+
+    [Fact]
+    public async Task GetUserByPrimaryOrSecondaryEmailOrThrow_ShouldThrowNotFoundException_WhenNoMatch()
+    {
+        SetUpUsersDbSet(new List<User>());
+
+        await Assert.ThrowsAsync<NotFoundException>(
+            () => _userDao.GetUserByPrimaryOrSecondaryEmailOrThrow("nobody@gmail.com")
+        );
+    }
 }

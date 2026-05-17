@@ -51,4 +51,5 @@ public class User
     [ForeignKey("CourseId")] public Course? Course { get; set; }
 
     [MaxLength(100)] public string? Group { get; set; }
+    [MaxLength(100)] public string? SecondaryEmail { get; set; }
 }
