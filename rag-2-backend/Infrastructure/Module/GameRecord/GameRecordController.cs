@@ -58,7 +58,10 @@ public class GameRecordController(GameRecordService gameRecordService) : Control
         return File(fileStream, "application/json", fileName);
     }
 
-    /// <summary>Add game recording, limits are present (Auth)</summary>
+    /// <summary>
+    /// Add game recording, limits are present (Auth). 
+    /// PrimaryScore is required. For ControlSource = 1 (AI), the ModelName field is required.
+    /// </summary>
     /// <response code="404">User or game not found</response>
     /// <response code="400">Space limit exceeded</response>
     [HttpPost]

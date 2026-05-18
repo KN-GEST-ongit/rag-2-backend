@@ -82,7 +82,7 @@ public class GameRecordService(
             SizeMb = recordRequest.Values.Count > 0
                 ? JsonSerializer.Serialize(recordRequest.Values).Length / (1024.0 * 1024.0)
                 : 0,
-            IsEmptyRecord = recordRequest.Values.Count == 0
+            IsEmptyRecord = recordRequest.Values.Count == 0,
 
             PrimaryScore = recordRequest.PrimaryScore,
             ControlSource = recordRequest.ControlSource,
