@@ -51,6 +51,7 @@ public static class ServiceRegistrationExtension
         services.AddScoped<UserDao>();
         services.AddScoped<RefreshTokenDao>();
         services.AddScoped<GameDao>();
+        services.AddScoped<GameScoreConfigDao>();
         services.AddScoped<GameRecordDao>();
         services.AddScoped<StatsUtil>();
         services.AddScoped<CourseDao>();
