@@ -13,9 +13,13 @@ public class GameRecord
 {
     [Key] public int Id { get; init; }
 
-    [ForeignKey("GameId")] public required Game Game { get; init; }
+    public int GameId { get; init; }
 
-    [ForeignKey("UserId")] public required User User { get; init; }
+    [ForeignKey(nameof(GameId))] public required Game Game { get; init; }
+
+    public int UserId { get; init; }
+
+    [ForeignKey(nameof(UserId))] public required User User { get; init; }
 
     public required List<GameRecordValue> Values { get; init; }
     public List<Player>? Players { get; init; }

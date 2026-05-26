@@ -20,4 +20,5 @@ public class GameScoreConfig
     [ForeignKey(nameof(GameId))] public required Game Game { get; init; }
 
     public ScoreType ScoreType { get; set; }
+    public GameType GameType { get; set; }
 }

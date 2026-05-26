@@ -11,6 +11,7 @@ using rag_2_backend.Infrastructure.Module.Course;
 using rag_2_backend.Infrastructure.Module.Email;
 using rag_2_backend.Infrastructure.Module.Game;
 using rag_2_backend.Infrastructure.Module.GameRecord;
+using rag_2_backend.Infrastructure.Module.Leaderboard;
 using rag_2_backend.Infrastructure.Module.Stats;
 using rag_2_backend.Infrastructure.Module.User;
 using rag_2_backend.Infrastructure.Util;
@@ -40,6 +41,7 @@ public static class ServiceRegistrationExtension
         services.AddHostedService<BackgroundServiceImpl>();
         services.AddScoped<UserService>();
         services.AddScoped<GameRecordService>();
+        services.AddScoped<LeaderboardService>();
         services.AddScoped<JwtUtil>();
         services.AddScoped<GameService>();
         services.AddScoped<EmailSendingUtil>();
@@ -52,6 +54,7 @@ public static class ServiceRegistrationExtension
         services.AddScoped<RefreshTokenDao>();
         services.AddScoped<GameDao>();
         services.AddScoped<GameScoreConfigDao>();
+        services.AddScoped<LeaderboardDao>();
         services.AddScoped<GameRecordDao>();
         services.AddScoped<StatsUtil>();
         services.AddScoped<CourseDao>();
