@@ -4,6 +4,7 @@ using HttpExceptions.Exceptions;
 using rag_2_backend.Infrastructure.Common.Model;
 using rag_2_backend.Infrastructure.Dao;
 using rag_2_backend.Infrastructure.Module.Leaderboard.Dto;
+using rag_2_backend.Infrastructure.Util;
 
 #endregion
 
@@ -12,7 +13,8 @@ namespace rag_2_backend.Infrastructure.Module.Leaderboard;
 public class LeaderboardService(
     GameDao gameDao,
     GameScoreConfigDao gameScoreConfigDao,
-    LeaderboardDao leaderboardDao
+    LeaderboardDao leaderboardDao,
+    LeaderboardUtil leaderboardUtil
 )
 {
     private const int DefaultLimit = 50;
@@ -32,12 +34,30 @@ public class LeaderboardService(
 
         var effectiveLimit = NormalizeLimit(limit);
 
-        return await leaderboardDao.GetEndlessLeaderboardEntries(
+        if (userId.HasValue)
+        {
+            return await leaderboardDao.GetEndlessLeaderboardEntries(
+                gameId,
+                userId,
+                scoreConfig.ScoreType,
+                effectiveLimit
+            );
+        }
+
+        var cached = leaderboardUtil.TryGetCached(gameId);
+        if (cached != null)
+            return cached.Take(effectiveLimit).ToList();
+
+        var entries = await leaderboardDao.GetEndlessLeaderboardEntries(
             gameId,
-            userId,
+            null,
             scoreConfig.ScoreType,
-            effectiveLimit
+            MaxLimit
         );
+
+        leaderboardUtil.SetCached(gameId, entries);
+
+        return entries.Take(effectiveLimit).ToList();
     }
 
     private static int NormalizeLimit(int? limit)

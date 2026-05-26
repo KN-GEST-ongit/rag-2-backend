@@ -10,6 +10,7 @@ using rag_2_backend.Infrastructure.Common.Model;
 using rag_2_backend.Infrastructure.Dao;
 using rag_2_backend.Infrastructure.Database;
 using rag_2_backend.Infrastructure.Module.GameRecord.Dto;
+using rag_2_backend.Infrastructure.Util;
 
 #endregion
 
@@ -20,7 +21,9 @@ public class GameRecordService(
     IConfiguration configuration,
     UserDao userDao,
     GameRecordDao gameRecordDao,
-    GameDao gameDao
+    GameDao gameDao,
+    GameScoreConfigDao gameScoreConfigDao,
+    LeaderboardUtil leaderboardUtil
 )
 {
     public async Task<List<GameRecordResponse>> GetRecordsByGameAndUser(
@@ -93,6 +96,18 @@ public class GameRecordService(
 
         var executionStrategy = context.Database.CreateExecutionStrategy();
         executionStrategy.Execute(() => gameRecordDao.PerformGameRecordTransaction(game, recordedGame, user));
+
+        await InvalidateLeaderboardCacheIfNeeded(game, recordRequest.ControlSource);
+    }
+
+    private async Task InvalidateLeaderboardCacheIfNeeded(Database.Entity.Game game, ControlSource controlSource)
+    {
+        if (controlSource != ControlSource.Human)
+            return;
+
+        var scoreConfig = await gameScoreConfigDao.GetByGameId(game.Id);
+        if (scoreConfig?.GameType == GameType.Endless)
+            leaderboardUtil.Invalidate(game.Id);
     }
 
     public async Task RemoveGameRecord(int gameRecordId, string email)
