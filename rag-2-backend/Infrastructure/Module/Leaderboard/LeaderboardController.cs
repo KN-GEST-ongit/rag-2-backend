@@ -17,7 +17,6 @@ public class LeaderboardController(LeaderboardService leaderboardService) : Cont
     /// Available for crossyroad and flappybird.
     /// </summary>
     /// <response code="404">Game or score config not found</response>
-    /// <response code="400">Game does not support leaderboard (e.g. pong)</response>
     [HttpGet]
     public async Task<List<LeaderboardEntryResponse>> GetLeaderboard(
         [Required] [FromQuery] int gameId,

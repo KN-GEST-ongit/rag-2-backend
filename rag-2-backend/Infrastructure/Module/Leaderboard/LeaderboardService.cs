@@ -1,6 +1,5 @@
 #region
 
-using HttpExceptions.Exceptions;
 using rag_2_backend.Infrastructure.Common.Model;
 using rag_2_backend.Infrastructure.Dao;
 using rag_2_backend.Infrastructure.Module.Leaderboard.Dto;
@@ -28,9 +27,6 @@ public class LeaderboardService(
     {
         await gameDao.GetGameByIdOrThrow(gameId);
         var scoreConfig = await gameScoreConfigDao.GetByGameIdOrThrow(gameId);
-
-        if (scoreConfig.GameType != GameType.Endless)
-            throw new BadRequestException("Leaderboard is only available for endless games");
 
         var effectiveLimit = NormalizeLimit(limit);
 

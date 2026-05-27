@@ -106,7 +106,7 @@ public class GameRecordService(
             return;
 
         var scoreConfig = await gameScoreConfigDao.GetByGameId(game.Id);
-        if (scoreConfig?.GameType == GameType.Endless)
+        if (scoreConfig != null)
             leaderboardUtil.Invalidate(game.Id);
     }
 

@@ -1,6 +1,5 @@
 #region
 
-using HttpExceptions.Exceptions;
 using Moq;
 using rag_2_backend.Infrastructure.Common.Model;
 using rag_2_backend.Infrastructure.Dao;
@@ -52,8 +51,7 @@ public class LeaderboardServiceTests
         {
             Game = game,
             GameId = gameId,
-            ScoreType = ScoreType.Integer,
-            GameType = GameType.Endless
+            ScoreType = ScoreType.Integer
         };
         var entries = new List<LeaderboardEntryResponse>
         {
@@ -73,27 +71,6 @@ public class LeaderboardServiceTests
     }
 
     [Fact]
-    public async Task GetLeaderboard_ShouldThrow_ForPongGame()
-    {
-        const int gameId = 2;
-        var game = new Game { Id = gameId, Name = "pong" };
-        var config = new GameScoreConfig
-        {
-            Game = game,
-            GameId = gameId,
-            ScoreType = ScoreType.Integer,
-            GameType = GameType.Pong
-        };
-
-        _gameDaoMock.Setup(d => d.GetGameByIdOrThrow(gameId)).ReturnsAsync(game);
-        _gameScoreConfigDaoMock.Setup(d => d.GetByGameIdOrThrow(gameId)).ReturnsAsync(config);
-
-        await Assert.ThrowsAsync<BadRequestException>(() =>
-            _leaderboardService.GetLeaderboard(gameId, null, null)
-        );
-    }
-
-    [Fact]
     public async Task GetLeaderboard_ShouldCapLimitAt100()
     {
         const int gameId = 1;
@@ -102,8 +79,7 @@ public class LeaderboardServiceTests
         {
             Game = game,
             GameId = gameId,
-            ScoreType = ScoreType.Integer,
-            GameType = GameType.Endless
+            ScoreType = ScoreType.Integer
         };
 
         _gameDaoMock.Setup(d => d.GetGameByIdOrThrow(gameId)).ReturnsAsync(game);
@@ -127,8 +103,7 @@ public class LeaderboardServiceTests
         {
             Game = game,
             GameId = gameId,
-            ScoreType = ScoreType.Integer,
-            GameType = GameType.Endless
+            ScoreType = ScoreType.Integer
         };
         var cached = Enumerable.Range(1, 20)
             .Select(i => new LeaderboardEntryResponse
