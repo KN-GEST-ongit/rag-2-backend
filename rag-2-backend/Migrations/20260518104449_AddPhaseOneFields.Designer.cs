@@ -2,6 +2,7 @@
 using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 using rag_2_backend.Infrastructure.Database;
@@ -11,9 +12,11 @@ using rag_2_backend.Infrastructure.Database;
 namespace rag_2_backend.Migrations
 {
     [DbContext(typeof(DatabaseContext))]
-    partial class DatabaseContextModelSnapshot : ModelSnapshot
+    [Migration("20260518104449_AddPhaseOneFields")]
+    partial class AddPhaseOneFields
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -116,7 +119,8 @@ namespace rag_2_backend.Migrations
                         .HasColumnType("character varying(1000)");
 
                     b.Property<string>("OutputSpec")
-                        .HasColumnType("text");
+                        .HasMaxLength(1000)
+                        .HasColumnType("character varying(1000)");
 
                     b.Property<string>("Players")
                         .HasColumnType("text");
@@ -144,28 +148,6 @@ namespace rag_2_backend.Migrations
                     b.HasIndex("UserId");
 
                     b.ToTable("game_record_table");
-                });
-
-            modelBuilder.Entity("rag_2_backend.Infrastructure.Database.Entity.GameScoreConfig", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("integer");
-
-                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
-
-                    b.Property<int>("GameId")
-                        .HasColumnType("integer");
-
-                    b.Property<int>("ScoreType")
-                        .HasColumnType("integer");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("GameId")
-                        .IsUnique();
-
-                    b.ToTable("game_score_config_table");
                 });
 
             modelBuilder.Entity("rag_2_backend.Infrastructure.Database.Entity.PasswordResetToken", b =>
@@ -204,30 +186,6 @@ namespace rag_2_backend.Migrations
                     b.HasIndex("UserId");
 
                     b.ToTable("refresh_token_table");
-                });
-
-            modelBuilder.Entity("rag_2_backend.Infrastructure.Database.Entity.SecondaryEmailToken", b =>
-                {
-                    b.Property<string>("Token")
-                        .HasMaxLength(100)
-                        .HasColumnType("character varying(100)");
-
-                    b.Property<DateTime>("Expiration")
-                        .HasColumnType("timestamp without time zone");
-
-                    b.Property<string>("PendingEmail")
-                        .IsRequired()
-                        .HasMaxLength(100)
-                        .HasColumnType("character varying(100)");
-
-                    b.Property<int>("UserId")
-                        .HasColumnType("integer");
-
-                    b.HasKey("Token");
-
-                    b.HasIndex("UserId");
-
-                    b.ToTable("secondary_email_token_table");
                 });
 
             modelBuilder.Entity("rag_2_backend.Infrastructure.Database.Entity.User", b =>
@@ -271,10 +229,6 @@ namespace rag_2_backend.Migrations
 
                     b.Property<int>("Role")
                         .HasColumnType("integer");
-
-                    b.Property<string>("SecondaryEmail")
-                        .HasMaxLength(100)
-                        .HasColumnType("character varying(100)");
 
                     b.Property<int>("StudyCycleYearA")
                         .HasColumnType("integer");
@@ -322,17 +276,6 @@ namespace rag_2_backend.Migrations
                     b.Navigation("User");
                 });
 
-            modelBuilder.Entity("rag_2_backend.Infrastructure.Database.Entity.GameScoreConfig", b =>
-                {
-                    b.HasOne("rag_2_backend.Infrastructure.Database.Entity.Game", "Game")
-                        .WithMany()
-                        .HasForeignKey("GameId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("Game");
-                });
-
             modelBuilder.Entity("rag_2_backend.Infrastructure.Database.Entity.PasswordResetToken", b =>
                 {
                     b.HasOne("rag_2_backend.Infrastructure.Database.Entity.User", "User")
@@ -345,17 +288,6 @@ namespace rag_2_backend.Migrations
                 });
 
             modelBuilder.Entity("rag_2_backend.Infrastructure.Database.Entity.RefreshToken", b =>
-                {
-                    b.HasOne("rag_2_backend.Infrastructure.Database.Entity.User", "User")
-                        .WithMany()
-                        .HasForeignKey("UserId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("User");
-                });
-
-            modelBuilder.Entity("rag_2_backend.Infrastructure.Database.Entity.SecondaryEmailToken", b =>
                 {
                     b.HasOne("rag_2_backend.Infrastructure.Database.Entity.User", "User")
                         .WithMany()

@@ -22,7 +22,10 @@ public abstract class GameRecordMapper
             OutputSpec = gameRecord.OutputSpec,
             SizeMb = gameRecord.SizeMb,
             User = UserMapper.Map(gameRecord.User),
-            IsEmptyRecord = gameRecord.IsEmptyRecord
+            IsEmptyRecord = gameRecord.IsEmptyRecord,
+            PrimaryScore = gameRecord.PrimaryScore,
+            ControlSource = gameRecord.ControlSource,
+            ModelName = gameRecord.ModelName
         };
     }
 
@@ -39,7 +42,10 @@ public abstract class GameRecordMapper
             EndState = gameRecord.EndState,
             OutputSpec = gameRecord.OutputSpec,
             SizeMb = gameRecord.SizeMb,
-            Values = gameRecord.Values
+            Values = gameRecord.Values,
+            PrimaryScore = gameRecord.PrimaryScore,
+            ControlSource = gameRecord.ControlSource,
+            ModelName = gameRecord.ModelName
         };
     }
 }

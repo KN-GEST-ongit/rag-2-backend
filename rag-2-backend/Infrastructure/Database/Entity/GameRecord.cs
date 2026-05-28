@@ -13,16 +13,24 @@ public class GameRecord
 {
     [Key] public int Id { get; init; }
 
-    [ForeignKey("GameId")] public required Game Game { get; init; }
+    public int GameId { get; init; }
 
-    [ForeignKey("UserId")] public required User User { get; init; }
+    [ForeignKey(nameof(GameId))] public required Game Game { get; init; }
+
+    public int UserId { get; init; }
+
+    [ForeignKey(nameof(UserId))] public required User User { get; init; }
 
     public required List<GameRecordValue> Values { get; init; }
     public List<Player>? Players { get; init; }
     public DateTime Started { get; set; }
     public DateTime Ended { get; set; }
-    [MaxLength(1000)] public string? OutputSpec { get; init; }
+    [Column(TypeName = "text")] public string? OutputSpec { get; init; }
     [MaxLength(5000)] public string? EndState { get; init; }
     public double SizeMb { get; init; }
     public bool IsEmptyRecord { get; init; }
+
+    public double? PrimaryScore { get; init; }
+    public ControlSource ControlSource { get; init; }
+    [MaxLength(1000)] public string? ModelName { get; init; }
 }

@@ -10,6 +10,7 @@ using rag_2_backend.Infrastructure.Common.Model;
 using rag_2_backend.Infrastructure.Dao;
 using rag_2_backend.Infrastructure.Database;
 using rag_2_backend.Infrastructure.Module.GameRecord.Dto;
+using rag_2_backend.Infrastructure.Util;
 
 #endregion
 
@@ -20,7 +21,9 @@ public class GameRecordService(
     IConfiguration configuration,
     UserDao userDao,
     GameRecordDao gameRecordDao,
-    GameDao gameDao
+    GameDao gameDao,
+    GameScoreConfigDao gameScoreConfigDao,
+    LeaderboardUtil leaderboardUtil
 )
 {
     public async Task<List<GameRecordResponse>> GetRecordsByGameAndUser(
@@ -82,13 +85,26 @@ public class GameRecordService(
             SizeMb = recordRequest.Values.Count > 0
                 ? JsonSerializer.Serialize(recordRequest.Values).Length / (1024.0 * 1024.0)
                 : 0,
-            IsEmptyRecord = recordRequest.Values.Count == 0
+            IsEmptyRecord = recordRequest.Values.Count == 0,
+
+            PrimaryScore = recordRequest.PrimaryScore,
+            ControlSource = recordRequest.ControlSource,
+            ModelName = recordRequest.ControlSource == ControlSource.AI ? recordRequest.ModelName : null
         };
 
         UpdateTimestamps(recordRequest, recordedGame);
 
         var executionStrategy = context.Database.CreateExecutionStrategy();
         executionStrategy.Execute(() => gameRecordDao.PerformGameRecordTransaction(game, recordedGame, user));
+
+        await InvalidateLeaderboardCacheIfNeeded(game, recordRequest.ControlSource, recordRequest.ModelName);
+    }
+
+    private async Task InvalidateLeaderboardCacheIfNeeded(Database.Entity.Game game, ControlSource controlSource, string? modelName)
+    {
+        var scoreConfig = await gameScoreConfigDao.GetByGameId(game.Id);
+        if (scoreConfig != null)
+            leaderboardUtil.InvalidateAll(game.Id, controlSource, modelName);
     }
 
     public async Task RemoveGameRecord(int gameRecordId, string email)
