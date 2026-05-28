@@ -3,6 +3,7 @@
 using HttpExceptions.Exceptions;
 using rag_2_backend.Infrastructure.Common.Model;
 using rag_2_backend.Infrastructure.Dao;
+using rag_2_backend.Infrastructure.Module.Game.Dto;
 using rag_2_backend.Infrastructure.Module.Leaderboard.Dto;
 using rag_2_backend.Infrastructure.Util;
 
@@ -51,11 +52,16 @@ public class LeaderboardService(
             gameId, scoreConfig.ScoreType, controlSource, modelName, MaxLimit
         );
 
-        if (cached == null)
+        if (cached == null && entries.Count > 0)
             leaderboardUtil.SetCached(gameId, controlSource, modelName, entries);
 
         var effectiveOffset = Math.Max(offset ?? 0, 0);
         return entries.Skip(effectiveOffset).Take(effectiveLimit).ToList();
+    }
+
+    public async Task<List<GameResponse>> GetGamesWithLeaderboard()
+    {
+        return await leaderboardDao.GetGamesWithLeaderboard();
     }
 
     public async Task<List<string>> GetAvailableModels(int gameId)

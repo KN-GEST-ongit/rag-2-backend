@@ -3,6 +3,8 @@
 using Microsoft.EntityFrameworkCore;
 using rag_2_backend.Infrastructure.Common.Model;
 using rag_2_backend.Infrastructure.Database;
+using rag_2_backend.Infrastructure.Database.Entity;
+using rag_2_backend.Infrastructure.Module.Game.Dto;
 using rag_2_backend.Infrastructure.Module.Leaderboard.Dto;
 using rag_2_backend.Infrastructure.Util;
 
@@ -33,29 +35,47 @@ public class LeaderboardDao(DatabaseContext dbContext)
         if (modelName != null)
             query = query.Where(r => r.ModelName == modelName);
 
-        var records = await query.ToListAsync();
+        List<GameRecord> records;
+        if (scoreType == ScoreType.Decimal)
+        {
+            records = await query
+                .OrderByDescending(r => r.PrimaryScore!.Value)
+                .Take(limit)
+                .ToListAsync();
+        }
+        else
+        {
+            var all = await query.ToListAsync();
+            records = all
+                .Where(r => IsWholeNumber(r.PrimaryScore!.Value))
+                .OrderByDescending(r => r.PrimaryScore!.Value)
+                .Take(limit)
+                .ToList();
+        }
 
-        if (scoreType == ScoreType.Integer)
-            records = records.Where(r => IsWholeNumber(r.PrimaryScore!.Value)).ToList();
-
-        var entries = records
-            .OrderByDescending(r => r.PrimaryScore!.Value)
-            .Take(limit)
+        return records
             .Select((r, i) => new LeaderboardEntryResponse
             {
+                Rank = i + 1,
                 Name = r.ControlSource == ControlSource.Human
                     ? r.User.Name
-                    : LeaderboardUtil.ResolveModelName(r.ModelName),
+                    : LeaderboardUtil.ResolveModelName(r.ModelName)
+                      ?? $"{r.User.Name} (custom model)",
                 ControlSource = r.ControlSource,
-                Score = r.PrimaryScore!.Value,
+                Score = Math.Round(r.PrimaryScore!.Value, 2),
                 UserId = r.ControlSource == ControlSource.Human ? r.UserId : null
             })
             .ToList();
+    }
 
-        for (var i = 0; i < entries.Count; i++)
-            entries[i].Rank = i + 1;
-
-        return entries;
+    public virtual async Task<List<GameResponse>> GetGamesWithLeaderboard()
+    {
+        return await dbContext.GameScoreConfigs
+            .AsNoTracking()
+            .Include(c => c.Game)
+            .OrderBy(c => c.Game.Name)
+            .Select(c => new GameResponse { Id = c.Game.Id, Name = c.Game.Name })
+            .ToListAsync();
     }
 
     public virtual async Task<List<string>> GetAvailableModels(int gameId)

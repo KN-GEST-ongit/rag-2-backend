@@ -25,7 +25,7 @@ public class GameRecord
     public List<Player>? Players { get; init; }
     public DateTime Started { get; set; }
     public DateTime Ended { get; set; }
-    [MaxLength(1000)] public string? OutputSpec { get; init; }
+    [Column(TypeName = "text")] public string? OutputSpec { get; init; }
     [MaxLength(5000)] public string? EndState { get; init; }
     public double SizeMb { get; init; }
     public bool IsEmptyRecord { get; init; }
