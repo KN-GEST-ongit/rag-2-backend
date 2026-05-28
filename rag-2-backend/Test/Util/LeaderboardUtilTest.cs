@@ -16,15 +16,15 @@ public class LeaderboardUtilTest
     }
 
     [Fact]
-    public void ResolveModelName_ShouldReturnCustomModel_WhenUnknown()
+    public void ResolveModelName_ShouldReturnBot_WhenUnknown()
     {
-        Assert.Equal("Custom model", LeaderboardUtil.ResolveModelName("my-local-bot"));
+        Assert.Equal("Bot", LeaderboardUtil.ResolveModelName("my-local-bot"));
     }
 
     [Fact]
-    public void ResolveModelName_ShouldReturnCustomModel_WhenNull()
+    public void ResolveModelName_ShouldReturnBot_WhenNull()
     {
-        Assert.Equal("Custom model", LeaderboardUtil.ResolveModelName(null));
+        Assert.Equal("Bot", LeaderboardUtil.ResolveModelName(null));
     }
 
     [Fact]

@@ -11,6 +11,8 @@ namespace rag_2_backend.Infrastructure.Util;
 
 public class LeaderboardUtil(IConfiguration configuration, IConnectionMultiplexer redisConnection)
 {
+    private const string FallbackBotName = "Bot";
+
     public static readonly HashSet<string> OfficialModels = new(StringComparer.OrdinalIgnoreCase)
     {
         "flappybird-ppo", "flappybird-ars", "flappybird-trpo",
@@ -21,10 +23,10 @@ public class LeaderboardUtil(IConfiguration configuration, IConnectionMultiplexe
 
     public static string ResolveModelName(string? modelName)
     {
-        if (modelName == null) return "Custom model";
+        if (modelName == null) return FallbackBotName;
         var canonical = OfficialModels.FirstOrDefault(m =>
             string.Equals(m, modelName, StringComparison.OrdinalIgnoreCase));
-        return canonical ?? "Custom model";
+        return canonical ?? FallbackBotName;
     }
 
     public string GetCacheKey(int gameId, ControlSource? controlSource, string? modelName)

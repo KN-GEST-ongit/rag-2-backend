@@ -99,7 +99,7 @@ public class LeaderboardDaoTests
     }
 
     [Fact]
-    public async Task GetLeaderboardEntries_Ai_ShouldShowCustomModel_WhenUnknownModelName()
+    public async Task GetLeaderboardEntries_Ai_ShouldShowBot_WhenUnknownModelName()
     {
         const int gameId = 1;
         var game = new Game { Id = gameId, Name = "flappybird" };
@@ -115,7 +115,7 @@ public class LeaderboardDaoTests
         );
 
         Assert.Single(result);
-        Assert.Equal("Custom model", result[0].Name);
+        Assert.Equal("Bot", result[0].Name);
     }
 
     [Fact]
