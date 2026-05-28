@@ -166,6 +166,54 @@ public class LeaderboardDaoTests
         Assert.Equal(90, result[0].Score);
     }
 
+    [Fact]
+    public async Task GetLeaderboardEntries_ShouldExcludeRecordsWithNullScore()
+    {
+        const int gameId = 1;
+        var game = new Game { Id = gameId, Name = "flappybird" };
+        var records = new List<GameRecord>
+        {
+            CreateRecord(game, 1, "Alice", 50),
+            new GameRecord
+            {
+                GameId = gameId, Game = game, UserId = 2,
+                User = new User { Id = 2, Name = "Bob", Email = "bob@test.com", Password = "pass" },
+                Values = [], ControlSource = ControlSource.Human, PrimaryScore = null, IsEmptyRecord = true
+            }
+        };
+
+        _dbContextMock.Setup(db => db.GameRecords).ReturnsDbSet(records);
+
+        var result = await _leaderboardDao.GetLeaderboardEntries(
+            gameId, ScoreType.Integer, null, null, 10
+        );
+
+        Assert.Single(result);
+        Assert.Equal("Alice", result[0].Name);
+    }
+
+    [Fact]
+    public async Task GetAvailableModels_ShouldReturnDistinctAiModels()
+    {
+        const int gameId = 1;
+        var game = new Game { Id = gameId, Name = "flappybird" };
+        var records = new List<GameRecord>
+        {
+            CreateRecord(game, 1, "Alice", 90, ControlSource.AI, "flappybird-ppo"),
+            CreateRecord(game, 2, "Bob", 70, ControlSource.AI, "flappybird-ppo"),
+            CreateRecord(game, 3, "Carol", 60, ControlSource.AI, "flappybird-trpo"),
+            CreateRecord(game, 4, "Dave", 50)
+        };
+
+        _dbContextMock.Setup(db => db.GameRecords).ReturnsDbSet(records);
+
+        var result = await _leaderboardDao.GetAvailableModels(gameId);
+
+        Assert.Equal(2, result.Count);
+        Assert.Contains("flappybird-ppo", result);
+        Assert.Contains("flappybird-trpo", result);
+    }
+
     private static GameRecord CreateRecord(
         Game game,
         int userId,

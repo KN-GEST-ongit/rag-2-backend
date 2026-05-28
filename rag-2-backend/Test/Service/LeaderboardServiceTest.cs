@@ -144,6 +144,58 @@ public class LeaderboardServiceTests
     }
 
     [Fact]
+    public async Task GetLeaderboard_ShouldThrowBadRequest_WhenModelNameWithoutAiControlSource()
+    {
+        const int gameId = 1;
+        var game = new Game { Id = gameId, Name = "flappybird" };
+        _gameDaoMock.Setup(d => d.GetGameByIdOrThrow(gameId)).ReturnsAsync(game);
+
+        await Assert.ThrowsAsync<HttpExceptions.Exceptions.BadRequestException>(() =>
+            _leaderboardService.GetLeaderboard(gameId, null, null, "some-model", null));
+    }
+
+    [Fact]
+    public async Task GetLeaderboard_ShouldApplyOffsetPagination()
+    {
+        const int gameId = 1;
+        var game = new Game { Id = gameId, Name = "flappybird" };
+        var config = new GameScoreConfig { Game = game, GameId = gameId, ScoreType = ScoreType.Integer };
+        var entries = Enumerable.Range(1, 5)
+            .Select(i => new LeaderboardEntryResponse
+            {
+                Rank = i, Score = 100 - i, Name = $"User{i}", ControlSource = ControlSource.Human
+            }).ToList();
+
+        _gameDaoMock.Setup(d => d.GetGameByIdOrThrow(gameId)).ReturnsAsync(game);
+        _gameScoreConfigDaoMock.Setup(d => d.GetByGameIdOrThrow(gameId)).ReturnsAsync(config);
+        _leaderboardDaoMock
+            .Setup(d => d.GetLeaderboardEntries(gameId, ScoreType.Integer, null, null, 100))
+            .ReturnsAsync(entries);
+
+        var result = await _leaderboardService.GetLeaderboard(gameId, null, null, null, 2, 2);
+
+        Assert.Equal(2, result.Count);
+        Assert.Equal("User3", result[0].Name);
+        Assert.Equal("User4", result[1].Name);
+    }
+
+    [Fact]
+    public async Task GetAvailableModels_ShouldReturnModels()
+    {
+        const int gameId = 1;
+        var game = new Game { Id = gameId, Name = "flappybird" };
+        var models = new List<string> { "flappybird-ppo", "flappybird-trpo" };
+
+        _gameDaoMock.Setup(d => d.GetGameByIdOrThrow(gameId)).ReturnsAsync(game);
+        _leaderboardDaoMock.Setup(d => d.GetAvailableModels(gameId)).ReturnsAsync(models);
+
+        var result = await _leaderboardService.GetAvailableModels(gameId);
+
+        Assert.Equal(2, result.Count);
+        Assert.Contains("flappybird-ppo", result);
+    }
+
+    [Fact]
     public async Task GetLeaderboard_Ai_ShouldUseModelSpecificCacheKey()
     {
         const int gameId = 2;
