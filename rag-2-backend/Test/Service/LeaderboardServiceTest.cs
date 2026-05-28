@@ -227,4 +227,31 @@ public class LeaderboardServiceTests
                 It.IsAny<CommandFlags>()),
             Times.Once);
     }
+
+    [Fact]
+    public async Task GetLeaderboard_ShouldNotCache_WhenResultIsEmpty()
+    {
+        const int gameId = 1;
+        var game = new Game { Id = gameId, Name = "flappybird" };
+        var config = new GameScoreConfig { Game = game, GameId = gameId, ScoreType = ScoreType.Integer };
+
+        _gameDaoMock.Setup(d => d.GetGameByIdOrThrow(gameId)).ReturnsAsync(game);
+        _gameScoreConfigDaoMock.Setup(d => d.GetByGameIdOrThrow(gameId)).ReturnsAsync(config);
+        _leaderboardDaoMock
+            .Setup(d => d.GetLeaderboardEntries(gameId, ScoreType.Integer, null, null, 100))
+            .ReturnsAsync([]);
+
+        var result = await _leaderboardService.GetLeaderboard(gameId, null, null, null, null);
+
+        Assert.Empty(result);
+        _redisDatabaseMock.Verify(d =>
+            d.StringSet(
+                It.IsAny<RedisKey>(),
+                It.IsAny<RedisValue>(),
+                It.IsAny<TimeSpan?>(),
+                It.IsAny<bool>(),
+                It.IsAny<When>(),
+                It.IsAny<CommandFlags>()),
+            Times.Never);
+    }
 }

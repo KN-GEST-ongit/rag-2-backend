@@ -12,8 +12,8 @@ using rag_2_backend.Infrastructure.Database;
 namespace rag_2_backend.Migrations
 {
     [DbContext(typeof(DatabaseContext))]
-    [Migration("20260526121717_AddGameTypeToGameScoreConfig")]
-    partial class AddGameTypeToGameScoreConfig
+    [Migration("20260528153140_ExpandOutputSpecToText")]
+    partial class ExpandOutputSpecToText
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -119,8 +119,7 @@ namespace rag_2_backend.Migrations
                         .HasColumnType("character varying(1000)");
 
                     b.Property<string>("OutputSpec")
-                        .HasMaxLength(1000)
-                        .HasColumnType("character varying(1000)");
+                        .HasColumnType("text");
 
                     b.Property<string>("Players")
                         .HasColumnType("text");
@@ -159,9 +158,6 @@ namespace rag_2_backend.Migrations
                     NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
 
                     b.Property<int>("GameId")
-                        .HasColumnType("integer");
-
-                    b.Property<int>("GameType")
                         .HasColumnType("integer");
 
                     b.Property<int>("ScoreType")

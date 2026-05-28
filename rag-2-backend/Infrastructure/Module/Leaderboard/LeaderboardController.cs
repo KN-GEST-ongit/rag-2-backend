@@ -3,6 +3,7 @@
 using System.ComponentModel.DataAnnotations;
 using Microsoft.AspNetCore.Mvc;
 using rag_2_backend.Infrastructure.Common.Model;
+using rag_2_backend.Infrastructure.Module.Game.Dto;
 using rag_2_backend.Infrastructure.Module.Leaderboard.Dto;
 
 #endregion
@@ -13,6 +14,15 @@ namespace rag_2_backend.Infrastructure.Module.Leaderboard;
 [Route("api/[controller]")]
 public class LeaderboardController(LeaderboardService leaderboardService) : ControllerBase
 {
+    /// <summary>
+    /// Get all games that have a leaderboard configured.
+    /// </summary>
+    [HttpGet("games")]
+    public async Task<List<GameResponse>> GetGamesWithLeaderboard()
+    {
+        return await leaderboardService.GetGamesWithLeaderboard();
+    }
+
     /// <summary>
     /// Get available AI model names for a game leaderboard.
     /// </summary>

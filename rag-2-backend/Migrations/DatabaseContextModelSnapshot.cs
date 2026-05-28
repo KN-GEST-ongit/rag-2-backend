@@ -116,8 +116,7 @@ namespace rag_2_backend.Migrations
                         .HasColumnType("character varying(1000)");
 
                     b.Property<string>("OutputSpec")
-                        .HasMaxLength(1000)
-                        .HasColumnType("character varying(1000)");
+                        .HasColumnType("text");
 
                     b.Property<string>("Players")
                         .HasColumnType("text");

@@ -99,7 +99,7 @@ public class LeaderboardDaoTests
     }
 
     [Fact]
-    public async Task GetLeaderboardEntries_Ai_ShouldShowBot_WhenUnknownModelName()
+    public async Task GetLeaderboardEntries_Ai_ShouldShowOwnerName_WhenCustomModelName()
     {
         const int gameId = 1;
         var game = new Game { Id = gameId, Name = "flappybird" };
@@ -115,7 +115,50 @@ public class LeaderboardDaoTests
         );
 
         Assert.Single(result);
-        Assert.Equal("Bot", result[0].Name);
+        Assert.Equal("Alice (custom model)", result[0].Name);
+    }
+
+    [Fact]
+    public async Task GetLeaderboardEntries_Decimal_ShouldIncludeDecimalScores()
+    {
+        const int gameId = 1;
+        var game = new Game { Id = gameId, Name = "ballfall" };
+        var records = new List<GameRecord>
+        {
+            CreateRecord(game, 1, "Alice", 499.65),
+            CreateRecord(game, 2, "Bob", 300.0)
+        };
+
+        _dbContextMock.Setup(db => db.GameRecords).ReturnsDbSet(records);
+
+        var result = await _leaderboardDao.GetLeaderboardEntries(
+            gameId, ScoreType.Decimal, null, null, 10
+        );
+
+        Assert.Equal(2, result.Count);
+        Assert.Equal(499.65, result[0].Score);
+        Assert.Equal(300.0, result[1].Score);
+    }
+
+    [Fact]
+    public async Task GetLeaderboardEntries_Integer_ShouldExcludeDecimalScores()
+    {
+        const int gameId = 1;
+        var game = new Game { Id = gameId, Name = "crossyroad" };
+        var records = new List<GameRecord>
+        {
+            CreateRecord(game, 1, "Alice", 10.0),
+            CreateRecord(game, 2, "Bob", 9.5)
+        };
+
+        _dbContextMock.Setup(db => db.GameRecords).ReturnsDbSet(records);
+
+        var result = await _leaderboardDao.GetLeaderboardEntries(
+            gameId, ScoreType.Integer, null, null, 10
+        );
+
+        Assert.Single(result);
+        Assert.Equal(10.0, result[0].Score);
     }
 
     [Fact]
