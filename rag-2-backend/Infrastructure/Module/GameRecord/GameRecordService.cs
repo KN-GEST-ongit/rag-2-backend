@@ -97,17 +97,14 @@ public class GameRecordService(
         var executionStrategy = context.Database.CreateExecutionStrategy();
         executionStrategy.Execute(() => gameRecordDao.PerformGameRecordTransaction(game, recordedGame, user));
 
-        await InvalidateLeaderboardCacheIfNeeded(game, recordRequest.ControlSource);
+        await InvalidateLeaderboardCacheIfNeeded(game, recordRequest.ControlSource, recordRequest.ModelName);
     }
 
-    private async Task InvalidateLeaderboardCacheIfNeeded(Database.Entity.Game game, ControlSource controlSource)
+    private async Task InvalidateLeaderboardCacheIfNeeded(Database.Entity.Game game, ControlSource controlSource, string? modelName)
     {
-        if (controlSource != ControlSource.Human)
-            return;
-
         var scoreConfig = await gameScoreConfigDao.GetByGameId(game.Id);
         if (scoreConfig != null)
-            leaderboardUtil.Invalidate(game.Id);
+            leaderboardUtil.InvalidateAll(game.Id, controlSource, modelName);
     }
 
     public async Task RemoveGameRecord(int gameRecordId, string email)

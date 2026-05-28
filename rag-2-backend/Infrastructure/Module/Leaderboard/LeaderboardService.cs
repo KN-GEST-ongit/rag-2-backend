@@ -1,5 +1,6 @@
 #region
 
+using HttpExceptions.Exceptions;
 using rag_2_backend.Infrastructure.Common.Model;
 using rag_2_backend.Infrastructure.Dao;
 using rag_2_backend.Infrastructure.Module.Leaderboard.Dto;
@@ -22,9 +23,15 @@ public class LeaderboardService(
     public async Task<List<LeaderboardEntryResponse>> GetLeaderboard(
         int gameId,
         int? userId,
-        int? limit
+        ControlSource? controlSource,
+        string? modelName,
+        int? limit,
+        int? offset = null
     )
     {
+        if (modelName != null && controlSource != ControlSource.AI)
+            throw new BadRequestException("modelName can only be used with controlSource=AI");
+
         await gameDao.GetGameByIdOrThrow(gameId);
         var scoreConfig = await gameScoreConfigDao.GetByGameIdOrThrow(gameId);
 
@@ -32,28 +39,29 @@ public class LeaderboardService(
 
         if (userId.HasValue)
         {
-            return await leaderboardDao.GetEndlessLeaderboardEntries(
-                gameId,
-                userId,
-                scoreConfig.ScoreType,
-                effectiveLimit
+            var all = await leaderboardDao.GetLeaderboardEntries(
+                gameId, scoreConfig.ScoreType, controlSource, modelName, int.MaxValue
             );
+            var userEntry = all.FirstOrDefault(e => e.UserId == userId.Value);
+            return userEntry != null ? [userEntry] : [];
         }
 
-        var cached = leaderboardUtil.TryGetCached(gameId);
-        if (cached != null)
-            return cached.Take(effectiveLimit).ToList();
-
-        var entries = await leaderboardDao.GetEndlessLeaderboardEntries(
-            gameId,
-            null,
-            scoreConfig.ScoreType,
-            MaxLimit
+        var cached = leaderboardUtil.TryGetCached(gameId, controlSource, modelName);
+        var entries = cached ?? await leaderboardDao.GetLeaderboardEntries(
+            gameId, scoreConfig.ScoreType, controlSource, modelName, MaxLimit
         );
 
-        leaderboardUtil.SetCached(gameId, entries);
+        if (cached == null)
+            leaderboardUtil.SetCached(gameId, controlSource, modelName, entries);
 
-        return entries.Take(effectiveLimit).ToList();
+        var effectiveOffset = Math.Max(offset ?? 0, 0);
+        return entries.Skip(effectiveOffset).Take(effectiveLimit).ToList();
+    }
+
+    public async Task<List<string>> GetAvailableModels(int gameId)
+    {
+        await gameDao.GetGameByIdOrThrow(gameId);
+        return await leaderboardDao.GetAvailableModels(gameId);
     }
 
     private static int NormalizeLimit(int? limit)

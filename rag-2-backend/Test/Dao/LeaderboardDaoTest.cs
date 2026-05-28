@@ -27,7 +27,7 @@ public class LeaderboardDaoTests
     }
 
     [Fact]
-    public async Task GetEndlessLeaderboardEntries_ShouldFilterByUserId()
+    public async Task GetLeaderboardEntries_Human_ShouldReturnAllScoresOrderedDesc()
     {
         const int gameId = 1;
         var game = new Game { Id = gameId, Name = "crossyroad" };
@@ -40,16 +40,130 @@ public class LeaderboardDaoTests
 
         _dbContextMock.Setup(db => db.GameRecords).ReturnsDbSet(records);
 
-        var result = await _leaderboardDao.GetEndlessLeaderboardEntries(
-            gameId,
-            1,
-            ScoreType.Integer,
-            10
+        var result = await _leaderboardDao.GetLeaderboardEntries(
+            gameId, ScoreType.Integer, ControlSource.Human, null, 10
+        );
+
+        Assert.Equal(3, result.Count);
+        Assert.Equal(99, result[0].Score);
+        Assert.Equal("Bob", result[0].Name);
+        Assert.Equal(42, result[1].Score);
+        Assert.Equal("Alice", result[1].Name);
+        Assert.Equal(10, result[2].Score);
+        Assert.Equal("Alice", result[2].Name);
+    }
+
+    [Fact]
+    public async Task GetLeaderboardEntries_Human_ShouldExcludeAiRecords()
+    {
+        const int gameId = 1;
+        var game = new Game { Id = gameId, Name = "crossyroad" };
+        var records = new List<GameRecord>
+        {
+            CreateRecord(game, 1, "Alice", 100),
+            CreateRecord(game, 2, "Bob", 50, ControlSource.AI, "crossyroad-ppo")
+        };
+
+        _dbContextMock.Setup(db => db.GameRecords).ReturnsDbSet(records);
+
+        var result = await _leaderboardDao.GetLeaderboardEntries(
+            gameId, ScoreType.Integer, ControlSource.Human, null, 10
         );
 
         Assert.Single(result);
-        Assert.Equal(42, result[0].Score);
-        Assert.Equal("Alice", result[0].UserName);
+        Assert.Equal("Alice", result[0].Name);
+    }
+
+    [Fact]
+    public async Task GetLeaderboardEntries_Ai_ShouldShowModelName()
+    {
+        const int gameId = 1;
+        var game = new Game { Id = gameId, Name = "flappybird" };
+        var records = new List<GameRecord>
+        {
+            CreateRecord(game, 1, "Alice", 75, ControlSource.AI, "flappybird-ppo"),
+            CreateRecord(game, 2, "Bob", 60, ControlSource.AI, "flappybird-ppo")
+        };
+
+        _dbContextMock.Setup(db => db.GameRecords).ReturnsDbSet(records);
+
+        var result = await _leaderboardDao.GetLeaderboardEntries(
+            gameId, ScoreType.Integer, ControlSource.AI, null, 10
+        );
+
+        Assert.Equal(2, result.Count);
+        Assert.Equal("flappybird-ppo", result[0].Name);
+        Assert.Equal(ControlSource.AI, result[0].ControlSource);
+        Assert.Equal(75, result[0].Score);
+        Assert.Equal(60, result[1].Score);
+    }
+
+    [Fact]
+    public async Task GetLeaderboardEntries_Ai_ShouldShowCustomModel_WhenUnknownModelName()
+    {
+        const int gameId = 1;
+        var game = new Game { Id = gameId, Name = "flappybird" };
+        var records = new List<GameRecord>
+        {
+            CreateRecord(game, 1, "Alice", 50, ControlSource.AI, "my-local-bot")
+        };
+
+        _dbContextMock.Setup(db => db.GameRecords).ReturnsDbSet(records);
+
+        var result = await _leaderboardDao.GetLeaderboardEntries(
+            gameId, ScoreType.Integer, ControlSource.AI, null, 10
+        );
+
+        Assert.Single(result);
+        Assert.Equal("Custom model", result[0].Name);
+    }
+
+    [Fact]
+    public async Task GetLeaderboardEntries_Combined_ShouldIncludeHumanAndAi()
+    {
+        const int gameId = 1;
+        var game = new Game { Id = gameId, Name = "flappybird" };
+        var records = new List<GameRecord>
+        {
+            CreateRecord(game, 1, "Alice", 100),
+            CreateRecord(game, 2, "Bob", 80, ControlSource.AI, "flappybird-ppo")
+        };
+
+        _dbContextMock.Setup(db => db.GameRecords).ReturnsDbSet(records);
+
+        var result = await _leaderboardDao.GetLeaderboardEntries(
+            gameId, ScoreType.Integer, null, null, 10
+        );
+
+        Assert.Equal(2, result.Count);
+        Assert.Equal(1, result[0].Rank);
+        Assert.Equal("Alice", result[0].Name);
+        Assert.Equal(ControlSource.Human, result[0].ControlSource);
+        Assert.Equal(2, result[1].Rank);
+        Assert.Equal("flappybird-ppo", result[1].Name);
+        Assert.Equal(ControlSource.AI, result[1].ControlSource);
+    }
+
+    [Fact]
+    public async Task GetLeaderboardEntries_Ai_ShouldFilterByModelName()
+    {
+        const int gameId = 1;
+        var game = new Game { Id = gameId, Name = "flappybird" };
+        var records = new List<GameRecord>
+        {
+            CreateRecord(game, 1, "Alice", 90, ControlSource.AI, "flappybird-ppo"),
+            CreateRecord(game, 2, "Bob", 70, ControlSource.AI, "flappybird-trpo")
+        };
+
+        _dbContextMock.Setup(db => db.GameRecords).ReturnsDbSet(records);
+
+        var result = await _leaderboardDao.GetLeaderboardEntries(
+            gameId, ScoreType.Integer, ControlSource.AI, "flappybird-ppo", 10
+        );
+
+        Assert.Single(result);
+        Assert.Equal("flappybird-ppo", result[0].Name);
+        Assert.Equal(90, result[0].Score);
     }
 
     private static GameRecord CreateRecord(
@@ -57,7 +171,8 @@ public class LeaderboardDaoTests
         int userId,
         string userName,
         double score,
-        ControlSource controlSource = ControlSource.Human
+        ControlSource controlSource = ControlSource.Human,
+        string? modelName = null
     )
     {
         return new GameRecord
@@ -74,6 +189,7 @@ public class LeaderboardDaoTests
             },
             Values = [],
             ControlSource = controlSource,
+            ModelName = modelName,
             PrimaryScore = score,
             IsEmptyRecord = false
         };
