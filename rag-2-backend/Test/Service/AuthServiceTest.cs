@@ -32,6 +32,7 @@ public class AuthServiceTest
     private readonly Mock<JwtSecurityTokenHandler> _jwtSecurityTokenHandlerMock = new();
 
     private readonly Mock<JwtUtil> _jwtUtilMock = new(null!);
+    private readonly Mock<UserDao> _userMock;
 
     private readonly User _user = new("email@prz.edu.pl")
     {
@@ -57,12 +58,13 @@ public class AuthServiceTest
             Token = HashUtil.HashPassword("password")
         };
 
-        Mock<UserDao> userMock = new(_contextMock.Object);
+        _userMock = new Mock<UserDao>(_contextMock.Object);
         Mock<RefreshTokenDao> refreshTokenDaoMock = new(_contextMock.Object);
-        userMock.Setup(u => u.GetUserByIdOrThrow(It.IsAny<int>())).ReturnsAsync(_user);
-        userMock.Setup(u => u.GetUserByEmailOrThrow(It.IsAny<string>())).ReturnsAsync(_user);
+        _userMock.Setup(u => u.GetUserByIdOrThrow(It.IsAny<int>())).ReturnsAsync(_user);
+        _userMock.Setup(u => u.GetUserByEmailOrThrow(It.IsAny<string>())).ReturnsAsync(_user);
+        _userMock.Setup(u => u.GetUserByPrimaryOrSecondaryEmailOrThrow(It.IsAny<string>())).ReturnsAsync(_user);
 
-        _authService = new AuthService(userMock.Object, refreshTokenDaoMock.Object, _contextMock.Object,
+        _authService = new AuthService(_userMock.Object, refreshTokenDaoMock.Object, _contextMock.Object,
             _jwtUtilMock.Object);
 
         _contextMock.Setup(c => c.Users).Returns(() => new List<User> { _user }
@@ -75,6 +77,8 @@ public class AuthServiceTest
             .Returns(() => new List<GameRecord>().AsQueryable().BuildMockDbSet().Object);
         _contextMock.Setup(c => c.PasswordResetTokens)
             .Returns(() => new List<PasswordResetToken> { passwordToken }.AsQueryable().BuildMockDbSet().Object);
+        _contextMock.Setup(c => c.SecondaryEmailTokens)
+            .Returns(() => new List<SecondaryEmailToken>().AsQueryable().BuildMockDbSet().Object);
         _jwtUtilMock.Setup(j => j.GenerateJwt(It.IsAny<string>(), It.IsAny<string>())).Verifiable();
         _emailService.Setup(e => e.SendConfirmationEmail(It.IsAny<string>(), It.IsAny<string>())).Verifiable();
         _emailService.Setup(e => e.SendPasswordResetMail(It.IsAny<string>(), It.IsAny<string>())).Verifiable();
@@ -113,10 +117,47 @@ public class AuthServiceTest
             Email = "email@prz.edu.pl",
             Role = Role.Teacher,
             StudyCycleYearA = 2022,
-            StudyCycleYearB = 2023
+            StudyCycleYearB = 2023,
+            SecondaryEmail = null,
+            HasPendingSecondaryEmail = false
         };
 
         Assert.Equal(JsonConvert.SerializeObject(userResponse),
             JsonConvert.SerializeObject(await _authService.GetMe("email@prz.edu.pl")));
+    }
+
+    [Fact]
+    public async Task ShouldLoginUser_ViaSecondaryEmail()
+    {
+        _user.Confirmed = true;
+        _user.SecondaryEmail = "personal@gmail.com";
+
+        await _authService.LoginUser("personal@gmail.com", "password", 30);
+
+        _jwtUtilMock.Verify(j => j.GenerateJwt("email@prz.edu.pl", It.IsAny<string>()), Times.Once);
+
+        _user.SecondaryEmail = null;
+        _user.Confirmed = false;
+    }
+
+    [Fact]
+    public async Task ShouldGetMe_WithPendingSecondaryEmail()
+    {
+        var pendingToken = new SecondaryEmailToken
+        {
+            Token = "tok",
+            User = _user,
+            Expiration = DateTime.Now.AddHours(24),
+            PendingEmail = "pending@gmail.com"
+        };
+        _contextMock.Setup(c => c.SecondaryEmailTokens)
+            .Returns(() => new List<SecondaryEmailToken> { pendingToken }.AsQueryable().BuildMockDbSet().Object);
+
+        var result = await _authService.GetMe("email@prz.edu.pl");
+
+        Assert.True(result.HasPendingSecondaryEmail);
+
+        _contextMock.Setup(c => c.SecondaryEmailTokens)
+            .Returns(() => new List<SecondaryEmailToken>().AsQueryable().BuildMockDbSet().Object);
     }
 }

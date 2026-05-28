@@ -9,7 +9,7 @@ namespace rag_2_backend.Infrastructure.Common.Mapper;
 
 public abstract class UserMapper
 {
-    public static UserResponse Map(User user)
+    public static UserResponse Map(User user, bool hasPendingSecondaryEmail = false)
     {
         return new UserResponse
         {
@@ -22,7 +22,9 @@ public abstract class UserMapper
             LastPlayed = user.LastPlayed.Equals(DateTime.MinValue) ? null : user.LastPlayed,
             Banned = user.Banned,
             Course = user.Course != null ? CourseMapper.Map(user.Course) : null,
-            Group = user.Group
+            Group = user.Group,
+            SecondaryEmail = user.SecondaryEmail,
+            HasPendingSecondaryEmail = hasPendingSecondaryEmail
         };
     }
 }

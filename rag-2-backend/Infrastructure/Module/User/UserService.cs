@@ -91,7 +91,7 @@ public class UserService(
 
     public async Task RequestPasswordReset(string email)
     {
-        var user = await userDao.GetUserByEmailOrThrow(email);
+        var user = await userDao.GetUserByPrimaryOrSecondaryEmailOrThrow(email);
 
         context.PasswordResetTokens.RemoveRange(
             context.PasswordResetTokens.Where(a => a.User.Email == user.Email)
@@ -144,10 +144,72 @@ public class UserService(
             .Include(p => p.User)
             .Where(a => a.User.Email == email)
         );
+        context.SecondaryEmailTokens.RemoveRange(context.SecondaryEmailTokens
+            .Include(p => p.User)
+            .Where(a => a.User.Email == email)
+        );
 
         context.Users.Remove(user);
         await context.SaveChangesAsync();
         await refreshTokenDao.RemoveTokensForUser(user);
+    }
+
+    public async Task SetSecondaryEmail(string newEmail, string principalEmail)
+    {
+        var user = await userDao.GetUserByEmailOrThrow(principalEmail);
+
+        if (!user.Confirmed)
+            throw new BadRequestException("Account not confirmed");
+
+        string domain;
+        try { domain = newEmail.Split('@')[1]; }
+        catch { throw new BadRequestException("Invalid email address"); }
+
+        if (domain == "stud.prz.edu.pl" || domain == "prz.edu.pl")
+            throw new BadRequestException("Secondary email cannot be a university address");
+
+        if (user.SecondaryEmail == newEmail)
+            throw new BadRequestException("This is already your confirmed secondary email");
+
+        if (await context.Users.AnyAsync(u => u.Id != user.Id && u.SecondaryEmail == newEmail))
+            throw new BadRequestException("Email already in use");
+
+        context.SecondaryEmailTokens.RemoveRange(
+            context.SecondaryEmailTokens.Where(t => t.User.Email == principalEmail)
+        );
+
+        await GenerateSecondaryEmailTokenAndSendMail(user, newEmail);
+        await context.SaveChangesAsync();
+    }
+
+    public async Task ConfirmSecondaryEmail(string tokenValue)
+    {
+        var token = await context.SecondaryEmailTokens
+                        .Include(t => t.User)
+                        .SingleOrDefaultAsync(t => t.Token == tokenValue)
+                    ?? throw new BadRequestException("Invalid token");
+
+        if (token.Expiration < DateTime.Now)
+            throw new BadRequestException("Invalid token");
+
+        if (await context.Users.AnyAsync(u => u.Id != token.User.Id && u.SecondaryEmail == token.PendingEmail))
+            throw new BadRequestException("Email already in use");
+
+        token.User.SecondaryEmail = token.PendingEmail;
+        context.SecondaryEmailTokens.Remove(token);
+        await context.SaveChangesAsync();
+    }
+
+    public async Task RemoveSecondaryEmail(string principalEmail)
+    {
+        var user = await userDao.GetUserByEmailOrThrow(principalEmail);
+
+        user.SecondaryEmail = null;
+        context.SecondaryEmailTokens.RemoveRange(
+            context.SecondaryEmailTokens.Where(t => t.User.Email == principalEmail)
+        );
+
+        await context.SaveChangesAsync();
     }
 
     //
@@ -203,5 +265,21 @@ public class UserService(
         };
         await context.PasswordResetTokens.AddAsync(token);
         emailService.SendPasswordResetMail(user.Email, token.Token);
+
+        if (user.SecondaryEmail != null)
+            emailService.SendPasswordResetMail(user.SecondaryEmail, token.Token);
+    }
+
+    private async Task GenerateSecondaryEmailTokenAndSendMail(Database.Entity.User user, string pendingEmail)
+    {
+        var token = new SecondaryEmailToken
+        {
+            Token = Guid.NewGuid().ToString(),
+            User = user,
+            Expiration = DateTime.Now.AddHours(24),
+            PendingEmail = pendingEmail
+        };
+        await context.SecondaryEmailTokens.AddAsync(token);
+        emailService.SendSecondaryEmailConfirmationMail(pendingEmail, token.Token);
     }
 }

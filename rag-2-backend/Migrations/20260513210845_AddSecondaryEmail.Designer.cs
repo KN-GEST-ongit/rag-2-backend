@@ -2,6 +2,7 @@
 using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 using rag_2_backend.Infrastructure.Database;
@@ -11,9 +12,11 @@ using rag_2_backend.Infrastructure.Database;
 namespace rag_2_backend.Migrations
 {
     [DbContext(typeof(DatabaseContext))]
-    partial class DatabaseContextModelSnapshot : ModelSnapshot
+    [Migration("20260513210845_AddSecondaryEmail")]
+    partial class AddSecondaryEmail
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -95,9 +98,6 @@ namespace rag_2_backend.Migrations
 
                     NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
 
-                    b.Property<int>("ControlSource")
-                        .HasColumnType("integer");
-
                     b.Property<string>("EndState")
                         .HasMaxLength(5000)
                         .HasColumnType("character varying(5000)");
@@ -111,19 +111,12 @@ namespace rag_2_backend.Migrations
                     b.Property<bool>("IsEmptyRecord")
                         .HasColumnType("boolean");
 
-                    b.Property<string>("ModelName")
-                        .HasMaxLength(1000)
-                        .HasColumnType("character varying(1000)");
-
                     b.Property<string>("OutputSpec")
                         .HasMaxLength(1000)
                         .HasColumnType("character varying(1000)");
 
                     b.Property<string>("Players")
                         .HasColumnType("text");
-
-                    b.Property<double?>("PrimaryScore")
-                        .HasColumnType("double precision");
 
                     b.Property<double>("SizeMb")
                         .HasColumnType("double precision");
@@ -145,28 +138,6 @@ namespace rag_2_backend.Migrations
                     b.HasIndex("UserId");
 
                     b.ToTable("game_record_table");
-                });
-
-            modelBuilder.Entity("rag_2_backend.Infrastructure.Database.Entity.GameScoreConfig", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("integer");
-
-                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
-
-                    b.Property<int>("GameId")
-                        .HasColumnType("integer");
-
-                    b.Property<int>("ScoreType")
-                        .HasColumnType("integer");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("GameId")
-                        .IsUnique();
-
-                    b.ToTable("game_score_config_table");
                 });
 
             modelBuilder.Entity("rag_2_backend.Infrastructure.Database.Entity.PasswordResetToken", b =>
@@ -321,17 +292,6 @@ namespace rag_2_backend.Migrations
                     b.Navigation("Game");
 
                     b.Navigation("User");
-                });
-
-            modelBuilder.Entity("rag_2_backend.Infrastructure.Database.Entity.GameScoreConfig", b =>
-                {
-                    b.HasOne("rag_2_backend.Infrastructure.Database.Entity.Game", "Game")
-                        .WithMany()
-                        .HasForeignKey("GameId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("Game");
                 });
 
             modelBuilder.Entity("rag_2_backend.Infrastructure.Database.Entity.PasswordResetToken", b =>

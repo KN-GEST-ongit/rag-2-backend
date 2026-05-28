@@ -29,4 +29,15 @@ public class EmailService(EmailSendingUtil emailSendingUtil, IConfiguration conf
         Task.Run(async () =>
             await emailSendingUtil.SendMail(to, "Password reset", body, logoPath));
     }
+
+    public virtual void SendSecondaryEmailConfirmationMail(string to, string token)
+    {
+        var address = config.GetValue<string>("FrontendURLs:SecondaryEmailConfirmationURL") + token;
+        var templatePath = Path.Combine(AppContext.BaseDirectory, "Templates", "secondary-email-confirmation.html");
+        var logoPath = Path.Combine(AppContext.BaseDirectory, "Templates/Images", "rag-2.png");
+        var body = File.ReadAllText(templatePath).Replace("{{address}}", address);
+
+        Task.Run(async () =>
+            await emailSendingUtil.SendMail(to, "Secondary email confirmation", body, logoPath));
+    }
 }
