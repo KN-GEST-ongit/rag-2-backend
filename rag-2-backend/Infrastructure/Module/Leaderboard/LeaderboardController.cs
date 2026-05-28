@@ -25,7 +25,7 @@ public class LeaderboardController(LeaderboardService leaderboardService) : Cont
 
     /// <summary>
     /// Get game leaderboard. controlSource: Human | AI | omit for combined ranking.
-    /// Available for crossyroad and flappybird.
+    /// Available for: crossyroad, flappybird, timberman, ballfall, twozerofoureight, happyjump, spaceinvaders, tetris, snake.
     /// </summary>
     /// <response code="404">Game or score config not found</response>
     /// <response code="400">modelName can only be used with controlSource=AI</response>
