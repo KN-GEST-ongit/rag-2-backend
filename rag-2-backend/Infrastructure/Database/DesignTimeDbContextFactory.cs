@@ -30,6 +30,7 @@ public class DesignTimeDbContextFactory : IDesignTimeDbContextFactory<DatabaseCo
             AccountConfirmationTokens = null!,
             RefreshTokens = null!,
             PasswordResetTokens = null!,
+            SecondaryEmailTokens = null!,
             Courses = null!
         };
     }
