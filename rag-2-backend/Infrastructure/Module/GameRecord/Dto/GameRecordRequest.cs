@@ -1,3 +1,5 @@
+using rag_2_backend.Infrastructure.Common.Model;
+
 namespace rag_2_backend.Infrastructure.Module.GameRecord.Dto;
 
 public class GameRecordRequest
