@@ -21,6 +21,7 @@ public class LeaderboardServiceTests
     private readonly Mock<GameScoreConfigDao> _gameScoreConfigDaoMock = new(null!);
     private readonly Mock<LeaderboardDao> _leaderboardDaoMock = new(null!);
     private readonly Mock<IDatabase> _redisDatabaseMock = new();
+    private readonly Mock<IAiOfficialModelsProvider> _aiOfficialModelsProviderMock = new();
     private readonly LeaderboardUtil _leaderboardUtil;
     private readonly LeaderboardService _leaderboardService;
 
@@ -34,12 +35,17 @@ public class LeaderboardServiceTests
         redisMock.Setup(r => r.GetDatabase(It.IsAny<int>(), It.IsAny<object>()))
             .Returns(_redisDatabaseMock.Object);
 
-        _leaderboardUtil = new LeaderboardUtil(configurationMock.Object, redisMock.Object);
+        _leaderboardUtil = new LeaderboardUtil(
+            configurationMock.Object,
+            redisMock.Object,
+            _aiOfficialModelsProviderMock.Object
+        );
         _leaderboardService = new LeaderboardService(
             _gameDaoMock.Object,
             _gameScoreConfigDaoMock.Object,
             _leaderboardDaoMock.Object,
-            _leaderboardUtil
+            _leaderboardUtil,
+            _aiOfficialModelsProviderMock.Object
         );
     }
 
@@ -180,19 +186,25 @@ public class LeaderboardServiceTests
     }
 
     [Fact]
-    public async Task GetAvailableModels_ShouldReturnModels()
+    public async Task GetAvailableModels_ShouldMergeAiServiceAndDatabaseModels()
     {
         const int gameId = 1;
         var game = new Game { Id = gameId, Name = "flappybird" };
-        var models = new List<string> { "flappybird-ppo", "flappybird-trpo" };
 
         _gameDaoMock.Setup(d => d.GetGameByIdOrThrow(gameId)).ReturnsAsync(game);
-        _leaderboardDaoMock.Setup(d => d.GetAvailableModels(gameId)).ReturnsAsync(models);
+        _aiOfficialModelsProviderMock
+            .Setup(p => p.GetModelsForGameAsync("flappybird", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(["flappybird-ppo", "flappybird-ars"]);
+        _leaderboardDaoMock
+            .Setup(d => d.GetAvailableModels(gameId))
+            .ReturnsAsync(["flappybird-trpo"]);
 
         var result = await _leaderboardService.GetAvailableModels(gameId);
 
-        Assert.Equal(2, result.Count);
+        Assert.Equal(3, result.Count);
         Assert.Contains("flappybird-ppo", result);
+        Assert.Contains("flappybird-ars", result);
+        Assert.Contains("flappybird-trpo", result);
     }
 
     [Fact]

@@ -15,7 +15,8 @@ public class LeaderboardService(
     GameDao gameDao,
     GameScoreConfigDao gameScoreConfigDao,
     LeaderboardDao leaderboardDao,
-    LeaderboardUtil leaderboardUtil
+    LeaderboardUtil leaderboardUtil,
+    IAiOfficialModelsProvider aiOfficialModelsProvider
 )
 {
     private const int DefaultLimit = 50;
@@ -66,8 +67,15 @@ public class LeaderboardService(
 
     public async Task<List<string>> GetAvailableModels(int gameId)
     {
-        await gameDao.GetGameByIdOrThrow(gameId);
-        return await leaderboardDao.GetAvailableModels(gameId);
+        var game = await gameDao.GetGameByIdOrThrow(gameId);
+        var fromAiService = await aiOfficialModelsProvider.GetModelsForGameAsync(game.Name);
+        var fromDatabase = await leaderboardDao.GetAvailableModels(gameId);
+
+        return fromAiService
+            .Concat(fromDatabase)
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .OrderBy(m => m, StringComparer.OrdinalIgnoreCase)
+            .ToList();
     }
 
     private static int NormalizeLimit(int? limit)

@@ -7,6 +7,7 @@ using rag_2_backend.Infrastructure.Common.Model;
 using rag_2_backend.Infrastructure.Dao;
 using rag_2_backend.Infrastructure.Database;
 using rag_2_backend.Infrastructure.Database.Entity;
+using rag_2_backend.Infrastructure.Util;
 using Xunit;
 
 #endregion
@@ -23,7 +24,21 @@ public class LeaderboardDaoTests
 
     public LeaderboardDaoTests()
     {
-        _leaderboardDao = new LeaderboardDao(_dbContextMock.Object);
+        var modelsProviderMock = new Mock<IAiOfficialModelsProvider>();
+        modelsProviderMock
+            .Setup(p => p.ResolveCanonicalModelName(It.IsAny<string?>()))
+            .Returns<string?>(name => name switch
+            {
+                "flappybird-ppo" or "flappybird-trpo" or "crossyroad-ppo" => name,
+                _ => null
+            });
+
+        var leaderboardUtil = new LeaderboardUtil(
+            new Mock<IConfiguration>().Object,
+            new Mock<StackExchange.Redis.IConnectionMultiplexer>().Object,
+            modelsProviderMock.Object
+        );
+        _leaderboardDao = new LeaderboardDao(_dbContextMock.Object, leaderboardUtil);
     }
 
     [Fact]

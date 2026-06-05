@@ -12,7 +12,7 @@ using rag_2_backend.Infrastructure.Util;
 
 namespace rag_2_backend.Infrastructure.Dao;
 
-public class LeaderboardDao(DatabaseContext dbContext)
+public class LeaderboardDao(DatabaseContext dbContext, LeaderboardUtil leaderboardUtil)
 {
     public virtual async Task<List<LeaderboardEntryResponse>> GetLeaderboardEntries(
         int gameId,
@@ -59,7 +59,7 @@ public class LeaderboardDao(DatabaseContext dbContext)
                 Rank = i + 1,
                 Name = r.ControlSource == ControlSource.Human
                     ? r.User.Name
-                    : LeaderboardUtil.ResolveModelName(r.ModelName)
+                    : leaderboardUtil.ResolveModelName(r.ModelName)
                       ?? $"{r.User.Name} (custom model)",
                 ControlSource = r.ControlSource,
                 Score = Math.Round(r.PrimaryScore!.Value, 2),

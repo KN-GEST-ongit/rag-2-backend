@@ -9,23 +9,16 @@ using StackExchange.Redis;
 
 namespace rag_2_backend.Infrastructure.Util;
 
-public class LeaderboardUtil(IConfiguration configuration, IConnectionMultiplexer redisConnection)
+public class LeaderboardUtil(
+    IConfiguration configuration,
+    IConnectionMultiplexer redisConnection,
+    IAiOfficialModelsProvider aiOfficialModelsProvider
+)
 {
-    public static readonly HashSet<string> OfficialModels = new(StringComparer.OrdinalIgnoreCase)
-    {
-        "PPO", "ARS", "TRPO", "BOT", "DQN",
-        "flappybird-ppo", "flappybird-ars", "flappybird-trpo",
-        "crossyroad-ppo", "crossyroad-dqn", "crossyroad-trpo"
-    };
-
     private readonly IDatabase _redisDatabase = redisConnection.GetDatabase();
 
-    public static string? ResolveModelName(string? modelName)
-    {
-        if (modelName == null) return null;
-        return OfficialModels.FirstOrDefault(m =>
-            string.Equals(m, modelName, StringComparison.OrdinalIgnoreCase));
-    }
+    public string? ResolveModelName(string? modelName) =>
+        aiOfficialModelsProvider.ResolveCanonicalModelName(modelName);
 
     public string GetCacheKey(int gameId, ControlSource? controlSource, string? modelName)
     {

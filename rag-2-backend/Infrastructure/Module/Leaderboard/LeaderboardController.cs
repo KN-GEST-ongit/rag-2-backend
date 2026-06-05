@@ -24,7 +24,7 @@ public class LeaderboardController(LeaderboardService leaderboardService) : Cont
     }
 
     /// <summary>
-    /// Get available AI model names for a game leaderboard.
+    /// Get available AI model names for a game leaderboard (rag-2-ai routes + saved AI records).
     /// </summary>
     /// <response code="404">Game not found</response>
     [HttpGet("models")]

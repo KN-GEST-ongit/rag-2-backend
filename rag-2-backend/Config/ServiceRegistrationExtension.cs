@@ -38,6 +38,10 @@ public static class ServiceRegistrationExtension
 
     private static void ConfigServices(IServiceCollection services)
     {
+        services.AddMemoryCache();
+        services.AddHttpClient<IRag2AiModelsClient, Rag2AiModelsClient>();
+        services.AddSingleton<IAiOfficialModelsProvider, AiOfficialModelsProvider>();
+
         services.AddHostedService<BackgroundServiceImpl>();
         services.AddScoped<UserService>();
         services.AddScoped<GameRecordService>();
