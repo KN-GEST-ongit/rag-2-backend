@@ -19,7 +19,7 @@ public class LeaderboardServiceTests
 {
     private readonly Mock<GameDao> _gameDaoMock = new(null!);
     private readonly Mock<GameScoreConfigDao> _gameScoreConfigDaoMock = new(null!);
-    private readonly Mock<LeaderboardDao> _leaderboardDaoMock = new(null!);
+    private readonly Mock<LeaderboardDao> _leaderboardDaoMock;
     private readonly Mock<IDatabase> _redisDatabaseMock = new();
     private readonly Mock<IAiOfficialModelsProvider> _aiOfficialModelsProviderMock = new();
     private readonly LeaderboardUtil _leaderboardUtil;
@@ -40,6 +40,7 @@ public class LeaderboardServiceTests
             redisMock.Object,
             _aiOfficialModelsProviderMock.Object
         );
+        _leaderboardDaoMock = new Mock<LeaderboardDao>(null!, _leaderboardUtil);
         _leaderboardService = new LeaderboardService(
             _gameDaoMock.Object,
             _gameScoreConfigDaoMock.Object,
