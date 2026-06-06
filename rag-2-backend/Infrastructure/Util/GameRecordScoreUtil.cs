@@ -7,7 +7,10 @@ namespace rag_2_backend.Infrastructure.Util;
 public static class GameRecordScoreUtil
 {
     private static readonly string[] ScorePropertyNames =
-        ["score", "points", "distance", "highScore", "level"];
+    [
+        "score", "currentScore", "score0", "score1", "scoreP1", "scoreP2",
+        "points", "distance", "highScore", "level"
+    ];
 
     public static (double? PrimaryScore, ControlSource ControlSource, string? ModelName) Resolve(
         GameRecordRequest request
@@ -62,12 +65,12 @@ public static class GameRecordScoreUtil
 
                 foreach (var property in element.EnumerateObject())
                 {
-                    if (property.Value.ValueKind is JsonValueKind.Object or JsonValueKind.Number)
-                    {
-                        var nestedScore = TryExtractScoreFromElement(property.Value);
-                        if (nestedScore != null)
-                            return nestedScore;
-                    }
+                    if (property.Value.ValueKind != JsonValueKind.Object)
+                        continue;
+
+                    var nestedScore = TryExtractScoreFromElement(property.Value);
+                    if (nestedScore != null)
+                        return nestedScore;
                 }
 
                 return null;
