@@ -10,6 +10,7 @@ using rag_2_backend.Infrastructure.Common.Model;
 using rag_2_backend.Infrastructure.Dao;
 using rag_2_backend.Infrastructure.Database;
 using rag_2_backend.Infrastructure.Module.GameRecord.Dto;
+using rag_2_backend.Infrastructure.Util;
 
 #endregion
 
@@ -20,7 +21,9 @@ public class GameRecordService(
     IConfiguration configuration,
     UserDao userDao,
     GameRecordDao gameRecordDao,
-    GameDao gameDao
+    GameDao gameDao,
+    GameScoreConfigDao gameScoreConfigDao,
+    LeaderboardUtil leaderboardUtil
 )
 {
     public async Task<List<GameRecordResponse>> GetRecordsByGameAndUser(
@@ -70,6 +73,7 @@ public class GameRecordService(
             await CheckUserDataLimit(recordRequest, user);
 
         var game = await gameDao.GetGameByNameOrThrow(recordRequest.GameName);
+        var (primaryScore, controlSource, modelName) = GameRecordScoreUtil.Resolve(recordRequest);
 
         var recordedGame = new Database.Entity.GameRecord
         {
@@ -84,15 +88,18 @@ public class GameRecordService(
                 : 0,
             IsEmptyRecord = recordRequest.Values.Count == 0,
 
-            PrimaryScore = null,
-            ControlSource = ControlSource.Human,
-            ModelName = null
+            PrimaryScore = primaryScore,
+            ControlSource = controlSource,
+            ModelName = modelName
         };
 
         UpdateTimestamps(recordRequest, recordedGame);
 
         var executionStrategy = context.Database.CreateExecutionStrategy();
         executionStrategy.Execute(() => gameRecordDao.PerformGameRecordTransaction(game, recordedGame, user));
+
+        if (primaryScore != null)
+            await InvalidateLeaderboardCacheIfNeeded(game, controlSource, modelName);
     }
 
     public async Task RemoveGameRecord(int gameRecordId, string email)
@@ -103,8 +110,28 @@ public class GameRecordService(
         if (user.Id != recordedGame.User.Id)
             throw new BadRequestException("Permission denied");
 
+        var shouldInvalidateLeaderboard = recordedGame.PrimaryScore != null;
+
         context.GameRecords.Remove(recordedGame);
         await context.SaveChangesAsync();
+
+        if (shouldInvalidateLeaderboard)
+            await InvalidateLeaderboardCacheIfNeeded(
+                recordedGame.Game,
+                recordedGame.ControlSource,
+                recordedGame.ModelName
+            );
+    }
+
+    private async Task InvalidateLeaderboardCacheIfNeeded(
+        Database.Entity.Game game,
+        ControlSource controlSource,
+        string? modelName
+    )
+    {
+        var scoreConfig = await gameScoreConfigDao.GetByGameId(game.Id);
+        if (scoreConfig != null)
+            leaderboardUtil.InvalidateAll(game.Id, controlSource, modelName);
     }
 
     //

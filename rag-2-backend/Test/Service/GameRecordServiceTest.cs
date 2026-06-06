@@ -14,6 +14,8 @@ using rag_2_backend.Infrastructure.Database.Entity;
 using rag_2_backend.Infrastructure.Module.GameRecord;
 using rag_2_backend.Infrastructure.Module.GameRecord.Dto;
 using rag_2_backend.Infrastructure.Module.User.Dto;
+using rag_2_backend.Infrastructure.Util;
+using StackExchange.Redis;
 using Xunit;
 using Role = rag_2_backend.Infrastructure.Common.Model.Role;
 
@@ -37,13 +39,26 @@ public class GameRecordServiceTests
         _gameRecordDaoMock = new Mock<GameRecordDao>(_dbContextMock.Object);
         Mock<GameDao> gameDaoMock = new(_dbContextMock.Object);
         Mock<IConfiguration> configurationMock = new();
+        Mock<GameScoreConfigDao> gameScoreConfigDaoMock = new(_dbContextMock.Object);
+        Mock<IConnectionMultiplexer> redisMock = new();
+        Mock<IDatabase> redisDatabaseMock = new();
+        configurationMock.Setup(c => c["Redis:Leaderboard:Prefix"]).Returns("Leaderboard:");
+        redisMock.Setup(r => r.GetDatabase(It.IsAny<int>(), It.IsAny<object>()))
+            .Returns(redisDatabaseMock.Object);
+        var leaderboardUtil = new LeaderboardUtil(
+            configurationMock.Object,
+            redisMock.Object,
+            new Mock<IAiOfficialModelsProvider>().Object
+        );
 
         _gameRecordService = new GameRecordService(
             _dbContextMock.Object,
             configurationMock.Object,
             _userDaoMock.Object,
             _gameRecordDaoMock.Object,
-            gameDaoMock.Object
+            gameDaoMock.Object,
+            gameScoreConfigDaoMock.Object,
+            leaderboardUtil
         );
     }
 
