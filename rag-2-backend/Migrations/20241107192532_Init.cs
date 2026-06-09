@@ -30,9 +30,6 @@ namespace rag_2_backend.Migrations
                 INSERT INTO public.game_table (""Name"")
                 VALUES ('pong')
                 ON CONFLICT DO NOTHING;
-                INSERT INTO public.game_table (""Name"")
-                VALUES ('skijump')
-                ON CONFLICT DO NOTHING;
             ");
         }
     }

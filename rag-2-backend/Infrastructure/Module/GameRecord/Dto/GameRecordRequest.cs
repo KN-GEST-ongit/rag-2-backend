@@ -1,8 +1,4 @@
-#region
-
 using rag_2_backend.Infrastructure.Common.Model;
-
-#endregion
 
 namespace rag_2_backend.Infrastructure.Module.GameRecord.Dto;
 

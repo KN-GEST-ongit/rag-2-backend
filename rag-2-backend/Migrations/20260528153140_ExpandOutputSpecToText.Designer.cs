@@ -2,6 +2,7 @@
 using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 using rag_2_backend.Infrastructure.Database;
@@ -11,9 +12,11 @@ using rag_2_backend.Infrastructure.Database;
 namespace rag_2_backend.Migrations
 {
     [DbContext(typeof(DatabaseContext))]
-    partial class DatabaseContextModelSnapshot : ModelSnapshot
+    [Migration("20260528153140_ExpandOutputSpecToText")]
+    partial class ExpandOutputSpecToText
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -206,30 +209,6 @@ namespace rag_2_backend.Migrations
                     b.ToTable("refresh_token_table");
                 });
 
-            modelBuilder.Entity("rag_2_backend.Infrastructure.Database.Entity.SecondaryEmailToken", b =>
-                {
-                    b.Property<string>("Token")
-                        .HasMaxLength(100)
-                        .HasColumnType("character varying(100)");
-
-                    b.Property<DateTime>("Expiration")
-                        .HasColumnType("timestamp without time zone");
-
-                    b.Property<string>("PendingEmail")
-                        .IsRequired()
-                        .HasMaxLength(100)
-                        .HasColumnType("character varying(100)");
-
-                    b.Property<int>("UserId")
-                        .HasColumnType("integer");
-
-                    b.HasKey("Token");
-
-                    b.HasIndex("UserId");
-
-                    b.ToTable("secondary_email_token_table");
-                });
-
             modelBuilder.Entity("rag_2_backend.Infrastructure.Database.Entity.User", b =>
                 {
                     b.Property<int>("Id")
@@ -271,10 +250,6 @@ namespace rag_2_backend.Migrations
 
                     b.Property<int>("Role")
                         .HasColumnType("integer");
-
-                    b.Property<string>("SecondaryEmail")
-                        .HasMaxLength(100)
-                        .HasColumnType("character varying(100)");
 
                     b.Property<int>("StudyCycleYearA")
                         .HasColumnType("integer");
@@ -345,17 +320,6 @@ namespace rag_2_backend.Migrations
                 });
 
             modelBuilder.Entity("rag_2_backend.Infrastructure.Database.Entity.RefreshToken", b =>
-                {
-                    b.HasOne("rag_2_backend.Infrastructure.Database.Entity.User", "User")
-                        .WithMany()
-                        .HasForeignKey("UserId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("User");
-                });
-
-            modelBuilder.Entity("rag_2_backend.Infrastructure.Database.Entity.SecondaryEmailToken", b =>
                 {
                     b.HasOne("rag_2_backend.Infrastructure.Database.Entity.User", "User")
                         .WithMany()

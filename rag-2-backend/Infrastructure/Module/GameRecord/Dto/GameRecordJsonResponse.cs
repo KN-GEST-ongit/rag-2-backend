@@ -21,4 +21,7 @@ public class GameRecordJsonResponse
     [MaxLength(1000)] public string? OutputSpec { get; init; }
     [MaxLength(500)] public string? EndState { get; init; }
     public double SizeMb { get; init; }
+    public double? PrimaryScore { get; init; }
+    public ControlSource ControlSource { get; init; }
+    public string? ModelName { get; init; }
 }

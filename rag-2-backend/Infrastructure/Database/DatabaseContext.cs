@@ -13,6 +13,7 @@ namespace rag_2_backend.Infrastructure.Database;
 public class DatabaseContext(DbContextOptions<DatabaseContext> options) : DbContext(options)
 {
     public virtual required DbSet<Game> Games { get; init; }
+    public virtual required DbSet<GameScoreConfig> GameScoreConfigs { get; init; }
     public virtual required DbSet<GameRecord> GameRecords { get; init; }
     public virtual required DbSet<User> Users { get; init; }
     public virtual required DbSet<AccountConfirmationToken> AccountConfirmationTokens { get; init; }
