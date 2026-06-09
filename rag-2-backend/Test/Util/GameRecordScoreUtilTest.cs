@@ -145,6 +145,98 @@ public class GameRecordScoreUtilTest
     }
 
     [Fact]
+    public void Resolve_ShouldUseBot_WhenOnlyActiveSocketPlayer()
+    {
+        var request = new GameRecordRequest
+        {
+            GameName = "crossyroad",
+            OutputSpec = "spec",
+            Players =
+            [
+                new Player
+                {
+                    Id = 0,
+                    Name = "Player 1",
+                    IsObligatory = true,
+                    IsActive = true,
+                    PlayerType = PlayerType.Socket
+                }
+            ],
+            Values = [new GameRecordValue { State = new { score = 46 } }]
+        };
+
+        var (primaryScore, controlSource, modelName) = GameRecordScoreUtil.Resolve(request);
+
+        Assert.Equal(46, primaryScore);
+        Assert.Equal(ControlSource.AI, controlSource);
+        Assert.Equal(GameRecordScoreUtil.BotModelName, modelName);
+    }
+
+    [Fact]
+    public void Resolve_ShouldUsePlayerModelName_WhenOnlyActiveSocketPlayer()
+    {
+        var request = new GameRecordRequest
+        {
+            GameName = "flappybird",
+            OutputSpec = "spec",
+            Players =
+            [
+                new Player
+                {
+                    Id = 0,
+                    Name = "Player 1",
+                    IsObligatory = true,
+                    IsActive = true,
+                    PlayerType = PlayerType.Socket,
+                    ModelName = "flappybird-ppo"
+                }
+            ],
+            Values = [new GameRecordValue { State = new { score = 46 } }]
+        };
+
+        var (primaryScore, controlSource, modelName) = GameRecordScoreUtil.Resolve(request);
+
+        Assert.Equal(46, primaryScore);
+        Assert.Equal(ControlSource.AI, controlSource);
+        Assert.Equal("flappybird-ppo", modelName);
+    }
+
+    [Fact]
+    public void Resolve_ShouldStayHuman_WhenSocketAndKeyboardActive()
+    {
+        var request = new GameRecordRequest
+        {
+            GameName = "pong",
+            OutputSpec = "spec",
+            Players =
+            [
+                new Player
+                {
+                    Id = 0,
+                    Name = "Player 1",
+                    IsObligatory = true,
+                    IsActive = true,
+                    PlayerType = PlayerType.Keyboard
+                },
+                new Player
+                {
+                    Id = 1,
+                    Name = "Player 2",
+                    IsObligatory = true,
+                    IsActive = true,
+                    PlayerType = PlayerType.Socket
+                }
+            ],
+            Values = [new GameRecordValue { State = new { score = 5 } }]
+        };
+
+        var (_, controlSource, modelName) = GameRecordScoreUtil.Resolve(request);
+
+        Assert.Equal(ControlSource.Human, controlSource);
+        Assert.Null(modelName);
+    }
+
+    [Fact]
     public void Resolve_ShouldExtractScoreP1_ForTimberman()
     {
         var request = new GameRecordRequest

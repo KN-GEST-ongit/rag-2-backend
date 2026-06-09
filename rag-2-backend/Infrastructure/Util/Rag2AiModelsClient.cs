@@ -22,20 +22,54 @@ public class Rag2AiModelsClient(HttpClient httpClient, IConfiguration configurat
         if (string.IsNullOrWhiteSpace(baseUrl))
             return [];
 
+        var routeGames = configuration.GetSection("Rag2Ai:RouteGames").Get<string[]>();
+        if (routeGames is { Length: > 0 })
+        {
+            var allRoutes = new List<Rag2AiRouteInfo>();
+            foreach (var game in routeGames.Where(g => !string.IsNullOrWhiteSpace(g)))
+            {
+                var gameRoutes = await FetchRoutesAsync(
+                    baseUrl,
+                    $"ws/{game.Trim()}/routes/",
+                    cancellationToken
+                );
+                allRoutes.AddRange(gameRoutes);
+            }
+
+            return allRoutes;
+        }
+
         var routesPath = configuration["Rag2Ai:RoutesPath"] ?? "/";
-        var requestUri = new Uri(new Uri(baseUrl.TrimEnd('/') + "/"), routesPath.TrimStart('/'));
+        return await FetchRoutesAsync(baseUrl, routesPath.TrimStart('/'), cancellationToken);
+    }
+
+    private async Task<IReadOnlyList<Rag2AiRouteInfo>> FetchRoutesAsync(
+        string baseUrl,
+        string path,
+        CancellationToken cancellationToken
+    )
+    {
+        var requestUri = new Uri(new Uri(baseUrl.TrimEnd('/') + "/"), path);
 
         try
         {
             using var response = await httpClient.GetAsync(requestUri, cancellationToken);
             if (!response.IsSuccessStatusCode)
             {
-                logger.LogWarning("rag-2-ai routes request failed with status {StatusCode}", response.StatusCode);
+                logger.LogWarning(
+                    "rag-2-ai routes request failed with status {StatusCode} for {Url}",
+                    response.StatusCode,
+                    requestUri
+                );
                 return [];
             }
 
             await using var stream = await response.Content.ReadAsStreamAsync(cancellationToken);
-            var routes = await JsonSerializer.DeserializeAsync<List<Rag2AiRouteInfo>>(stream, JsonOptions, cancellationToken);
+            var routes = await JsonSerializer.DeserializeAsync<List<Rag2AiRouteInfo>>(
+                stream,
+                JsonOptions,
+                cancellationToken
+            );
             return routes ?? [];
         }
         catch (Exception ex) when (ex is HttpRequestException or TaskCanceledException or JsonException)

@@ -16,4 +16,5 @@ public class Player
     public required PlayerType PlayerType { get; set; }
     public object? InputData { get; set; }
     [MaxLength(500)] public string? ExpectedDataDescription { get; set; }
+    [MaxLength(1000)] public string? ModelName { get; set; }
 }

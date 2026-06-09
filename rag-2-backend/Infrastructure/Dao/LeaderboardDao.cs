@@ -59,8 +59,7 @@ public class LeaderboardDao(DatabaseContext dbContext, LeaderboardUtil leaderboa
                 Rank = i + 1,
                 Name = r.ControlSource == ControlSource.Human
                     ? r.User.Name
-                    : leaderboardUtil.ResolveModelName(r.ModelName)
-                      ?? $"{r.User.Name} (custom model)",
+                    : ResolveAiLeaderboardName(r),
                 ControlSource = r.ControlSource,
                 Score = Math.Round(r.PrimaryScore!.Value, 2),
                 UserId = r.ControlSource == ControlSource.Human ? r.UserId : null
@@ -87,6 +86,14 @@ public class LeaderboardDao(DatabaseContext dbContext, LeaderboardUtil leaderboa
             .Distinct()
             .OrderBy(m => m)
             .ToListAsync();
+    }
+
+    private string ResolveAiLeaderboardName(GameRecord record)
+    {
+        if (string.IsNullOrEmpty(record.ModelName))
+            return GameRecordScoreUtil.BotModelName;
+
+        return leaderboardUtil.ResolveModelName(record.ModelName) ?? record.ModelName;
     }
 
     private static bool IsWholeNumber(double score) => Math.Abs(score % 1) < 0.000001;

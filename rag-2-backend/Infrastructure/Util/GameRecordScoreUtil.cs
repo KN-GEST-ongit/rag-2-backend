@@ -6,6 +6,8 @@ namespace rag_2_backend.Infrastructure.Util;
 
 public static class GameRecordScoreUtil
 {
+    public const string BotModelName = "BOT";
+
     private static readonly string[] ScorePropertyNames =
     [
         "score", "currentScore", "score0", "score1", "scoreP1", "scoreP2",
@@ -17,7 +19,35 @@ public static class GameRecordScoreUtil
     )
     {
         var primaryScore = TryExtractScoreFromValues(request.Values);
-        return (primaryScore, ControlSource.Human, null);
+        var (controlSource, modelName) = ResolveControlSource(request.Players);
+        return (primaryScore, controlSource, modelName);
+    }
+
+    private static (ControlSource ControlSource, string? ModelName) ResolveControlSource(
+        List<Player> players
+    )
+    {
+        var activePlayers = players.Where(p => p.IsActive).ToList();
+        if (activePlayers.Count == 0)
+            return (ControlSource.Human, null);
+
+        var hasKeyboard = activePlayers.Any(p => p.PlayerType == PlayerType.Keyboard);
+        var hasSocket = activePlayers.Any(p => p.PlayerType == PlayerType.Socket);
+
+        if (hasSocket && !hasKeyboard)
+            return (ControlSource.AI, ResolveSocketModelName(activePlayers));
+
+        return (ControlSource.Human, null);
+    }
+
+    private static string ResolveSocketModelName(List<Player> activePlayers)
+    {
+        var modelName = activePlayers
+            .Where(p => p.PlayerType == PlayerType.Socket)
+            .Select(p => p.ModelName?.Trim())
+            .FirstOrDefault(name => !string.IsNullOrEmpty(name));
+
+        return string.IsNullOrEmpty(modelName) ? BotModelName : modelName;
     }
 
     private static double? TryExtractScoreFromValues(List<GameRecordValue> values)

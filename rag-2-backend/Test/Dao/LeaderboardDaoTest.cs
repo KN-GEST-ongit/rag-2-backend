@@ -130,7 +130,27 @@ public class LeaderboardDaoTests
         );
 
         Assert.Single(result);
-        Assert.Equal("Alice (custom model)", result[0].Name);
+        Assert.Equal("my-local-bot", result[0].Name);
+    }
+
+    [Fact]
+    public async Task GetLeaderboardEntries_Ai_ShouldShowBot_WhenBotModelName()
+    {
+        const int gameId = 1;
+        var game = new Game { Id = gameId, Name = "crossyroad" };
+        var records = new List<GameRecord>
+        {
+            CreateRecord(game, 1, "Alice", 46, ControlSource.AI, GameRecordScoreUtil.BotModelName)
+        };
+
+        _dbContextMock.Setup(db => db.GameRecords).ReturnsDbSet(records);
+
+        var result = await _leaderboardDao.GetLeaderboardEntries(
+            gameId, ScoreType.Integer, ControlSource.AI, null, 10
+        );
+
+        Assert.Single(result);
+        Assert.Equal("BOT", result[0].Name);
     }
 
     [Fact]
